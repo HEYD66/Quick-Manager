@@ -1,0 +1,19 @@
+{
+  "name": "quick-manager",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "Quick Manager — AWS Quick Windows 多账号池管理、极速切号、实时双额度监控、对话同步与云端配置管理工具",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node selftest.js"
+  },
+  "keywords": [
+    "aws-quick",
+    "quick-manager",
+    "account-manager",
+    "electron",
+    "mcp"
+  ],
+  "license": "MIT"
+}

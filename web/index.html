@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quick 家庭账号助手</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<div class="shell" id="appShell">
+  <!-- ==================== 左侧固定可折叠侧栏 ==================== -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">Q</div>
+      <div class="sb-title-wrap">
+        <div class="sb-title">Quick 账号助手</div>
+        <div class="sb-sub" id="sbModeText">全功能工作台</div>
+      </div>
+    </div>
+
+    <nav class="sb-nav" id="sidebarNav">
+      <button type="button" class="nav-btn active" data-nav="accounts" title="账户管理">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="nav-label">账户管理</span>
+        <span class="nav-count" id="navAccCount">0</span>
+      </button>
+
+      <button type="button" class="nav-btn" data-nav="home" title="一键换号">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="nav-label">一键换号</span>
+      </button>
+
+      <button type="button" class="nav-btn" data-nav="conversations" title="对话同步">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="nav-label">对话同步</span>
+      </button>
+
+      <button type="button" class="nav-btn" data-nav="template" title="通用配置">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        <span class="nav-label">通用配置</span>
+      </button>
+
+      <button type="button" class="nav-btn" data-nav="api" title="本地反代">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span class="nav-label">本地反代</span>
+      </button>
+
+      <button type="button" class="nav-btn" data-nav="settings" title="设置与备份">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="nav-label">设置与备份</span>
+      </button>
+    </nav>
+
+    <div class="sb-foot">
+      <button type="button" class="nav-btn" id="themeBtn" title="切换深浅模式">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <span class="nav-label" id="themeLabel">浅色模式</span>
+      </button>
+      <button type="button" class="nav-btn" id="collapseBtn" title="收起 / 展开侧栏">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+        <span class="nav-label" id="collapseLabel">收起侧栏</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ==================== 右侧工作区 ==================== -->
+  <div class="workspace">
+    <header class="topbar">
+      <div class="topbar-title" id="pageTitle">账户管理</div>
+      <div class="topbar-right">
+        <span class="status-chip ok" id="activeTopChip">
+          <span class="dot ok"></span>
+          <span id="activeTopText">当前：—</span>
+        </span>
+        <span class="status-chip" id="appPill">检测客户端…</span>
+        <button type="button" class="btn sm ghost" id="topRecheckBtn">重新检测</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- 空白窗登录进行中横幅 -->
+      <div class="banner" id="blankLoginBanner" hidden>
+        <div>
+          <strong>正在等待空白 AWS Quick 窗口完成新账号登录…</strong>
+          <div class="muted">在弹出的客户端登录新号后会自动合并原有全部账号。</div>
+        </div>
+        <button type="button" class="btn sm" id="cancelBlankLoginBtn">取消并恢复原账号</button>
+      </div>
+
+      <!-- 换号后跨号续聊提示条 -->
+      <div class="banner handoff-banner" id="switchHandoffBanner" hidden>
+        <div style="min-width:0;flex:1">
+          <strong id="handoffBannerTitle">原账号对话已同步到本地</strong>
+          <div class="muted" id="handoffBannerSub">AWS Quick 左侧 Recents 仅显示当前号云端历史；已准备好上一条对话续聊上下文，在 Quick 输入框按 Ctrl+V 即可接着聊。</div>
+        </div>
+        <div class="row">
+          <button type="button" class="btn primary sm" id="handoffCopyBtn">复制续聊上下文</button>
+          <button type="button" class="btn sm" id="handoffOpenConvBtn">查看同步对话</button>
+          <button type="button" class="btn ghost sm" id="handoffCloseBtn">关闭</button>
+        </div>
+      </div>
+
+      <!-- ===== 视图 1：一键换号（概览与快速切换） ===== -->
+      <section class="view" id="view-home" hidden>
+        <div class="hero-card">
+          <div class="hero-left">
+            <div class="hero-kicker">当前使用账号</div>
+            <div class="hero-account">
+              <div class="avatar" id="heroAvatar">Q</div>
+              <div style="min-width:0;flex:1">
+                <div class="hero-name-row">
+                  <h1 id="heroName">加载中…</h1>
+                  <span class="badge" id="heroBadge">检测中</span>
+                </div>
+                <div class="hero-sub" id="heroSub">正在读取账号池状态…</div>
+              </div>
+            </div>
+            <div class="hero-bars" id="heroBars"></div>
+            <div class="user-chips-row">
+              <span class="muted">当前使用人</span>
+              <div class="chips" id="familyUserChips"></div>
+            </div>
+          </div>
+
+          <div class="hero-actions">
+            <button type="button" class="btn primary xl" id="heroOpenBtn">打开 AWS Quick</button>
+            <button type="button" class="btn accent-solid xl" id="heroClaimBtn">一键换空闲号</button>
+            <div class="hero-next-hint" id="heroNextHint">自动挑选状态正常且余量最充足的空闲账号</div>
+          </div>
+        </div>
+
+        <div class="filter-bar-row">
+          <div class="filter-left">
+            <strong style="color:var(--text)">共享账号池</strong>
+            <span id="poolSummaryText">—</span>
+          </div>
+          <div class="filter-right">
+            <button type="button" class="btn sm ghost" id="homeMaskBtn">隐私打码</button>
+            <button type="button" class="btn sm ghost" id="familyRefreshBtn">刷新状态</button>
+          </div>
+        </div>
+
+        <div class="card-grid" id="accountGrid"></div>
+        <div class="empty-card" id="familyEmpty" hidden>
+          <div class="empty-title">账号池暂无可用账号</div>
+          <div class="muted">点击左侧「账户管理」添加或采集本机账号。</div>
+        </div>
+      </section>
+
+      <!-- ===== 视图 2：账户管理（Kiro 风格三列高密度标签卡片） ===== -->
+      <section class="view" id="view-accounts">
+        <div class="search-bar-row">
+          <div class="search-wrap">
+            <svg class="ico ico-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input class="input" id="admSearchInput" placeholder="搜索邮箱 / 昵称 / 分组 / 备注…">
+          </div>
+          <div class="row" style="margin-left:auto">
+            <button type="button" class="btn primary" id="admAddBtn">
+              <svg class="ico ico-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              添加账号
+            </button>
+            <button type="button" class="btn" id="admImportBtn">导入</button>
+            <button type="button" class="btn accent" id="admFullAccessBtn">一键完全权限</button>
+          </div>
+        </div>
+
+        <div class="filter-bar-row">
+          <div class="filter-left" id="admSummaryLine">共 0 个账号</div>
+          <div class="filter-right">
+            <select class="select sm" id="admGroupFilter">
+              <option value="all">全部分组</option>
+            </select>
+            <select class="select sm" id="admStatusFilter">
+              <option value="all">全部状态</option>
+              <option value="ready">仅可用</option>
+              <option value="fix">待维护</option>
+            </select>
+            <button type="button" class="btn sm" id="admRefreshAllBtn">刷新全部额度</button>
+            <button type="button" class="btn sm" id="admSyncBtn">采集本机</button>
+            <button type="button" class="btn sm" id="admMaskBtn">隐私打码</button>
+            <button type="button" class="btn sm" id="admCompactBtn">紧凑模式</button>
+          </div>
+        </div>
+
+        <div class="card-grid" id="admCardGrid"></div>
+      </section>
+
+      <!-- ===== 视图 3：对话同步中心 ===== -->
+      <section class="view" id="view-conversations" hidden>
+        <div class="panel">
+          <div class="row">
+            <button type="button" class="btn primary sm" id="convSyncBtn">同步全部账号</button>
+            <select class="select sm" id="convAccountFilter"></select>
+            <button type="button" class="btn accent sm" id="convSyncOneBtn" disabled>同步选中账号</button>
+            <button type="button" class="btn sm" id="convOpenDirBtn">打开本地归档</button>
+            <input class="input grow" id="convSearchInput" placeholder="搜索对话标题或聊天内容…">
+          </div>
+          <div class="conv-acc-bar" id="convAccountChips"></div>
+          <div class="row" style="margin-top:8px">
+            <label class="inline" id="convAutoSwitchWrap">
+              <input type="checkbox" id="convAutoSwitchChk"> 换号前自动同步原账号对话
+            </label>
+            <label class="inline">
+              <input type="checkbox" id="convAutoCopyChk"> 换号后自动复制续聊指令（含本地路径，切号后 Ctrl+V 让新号直接读取接续）
+            </label>
+          </div>
+          <div class="hint" id="convSyncStatus" style="margin-top:6px">就绪</div>
+        </div>
+
+        <div class="conv-layout">
+          <div class="conv-sidebar" id="convListBox">
+            <div class="muted" style="padding:20px;text-align:center">暂无本地归档对话</div>
+          </div>
+          <div class="conv-detail" id="convDetailBox">
+            <div class="conv-empty">在左侧选择任意一条对话即可查看完整记录，并可一键复制续聊上下文贴给新账号。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== 视图 4：通用配置 ===== -->
+      <section class="view" id="view-template" hidden>
+        <div class="panel">
+          <div class="panel-head">
+            <span>本机终端与全盘文件权限（Local Tools MCP）</span>
+            <span class="pill" id="localToolsPill">检测中…</span>
+          </div>
+          <p class="muted" style="margin:0">通过官方 MCP 协议挂载本机无乱码终端与文件工具（<code>run_command</code> / <code>read_file</code> / <code>write_file</code> / <code>list_dir</code>），新老账号自动继承。</p>
+          <div class="row" style="margin-top:11px">
+            <label class="inline"><input type="checkbox" id="localToolsAutoAllowChk" checked> 工具调用自动放行（免每次弹窗确认）</label>
+          </div>
+          <div class="row" style="margin-top:11px">
+            <button type="button" class="btn primary sm" id="localToolsEnableBtn">全账号放开并重启 Quick 生效</button>
+            <button type="button" class="btn danger sm" id="localToolsDisableBtn">收回本机命令权限</button>
+          </div>
+          <div class="hint" id="localToolsHint" style="margin-top:8px">—</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <span>自带技能一键精简（减少上下文占用与干扰）</span>
+            <span class="pill" id="skillsSummaryPill">按需读取</span>
+          </div>
+          <p class="muted" style="margin:0">通过 AWS Quick 官方云端接口批量关闭/开启内置技能（支持单号或全号池同步，云端持久生效）。</p>
+          <div class="row" style="margin-top:11px">
+            <select class="select sm" id="skillsAccountSelect"></select>
+            <label class="inline"><input type="checkbox" id="skillsKeepAcpChk" checked> 保留第一个「Coding Agent Skills」</label>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="btn primary sm" id="skillsDisableAllBtn">一键关闭自带技能</button>
+            <button type="button" class="btn sm" id="skillsEnableAllBtn">全部重新开启</button>
+            <button type="button" class="btn accent sm" id="skillsSetZhBtn">一键设为简体中文</button>
+            <button type="button" class="btn ghost sm" id="skillsLoadBtn">查看 / 单独开关列表</button>
+          </div>
+          <div class="hint" id="skillsStatusHint" style="margin-top:8px">选择「全部账号」可一次清理整个号池的 50+ 个冗余内置技能。</div>
+          <div class="skills-list" id="skillsListBox" hidden></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">家庭通用配置模板（换号自动同步）</div>
+          <div class="row">
+            <select class="select" id="tplSourceSelect"></select>
+            <button type="button" class="btn primary sm" id="tplSaveBtn">存为通用模板</button>
+            <button type="button" class="btn sm" id="tplApplyAllBtn">立即同步到全部账号</button>
+            <label class="inline" style="margin-left:auto"><input type="checkbox" id="tplAutoChk"> 切换账号时自动同步</label>
+          </div>
+          <div class="hint" id="tplMetaInfo" style="margin-top:8px">—</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <span>MCP 服务器管理</span>
+            <select class="select sm" id="mcpAccountSelect"></select>
+          </div>
+          <div class="mcp-list" id="mcpList"></div>
+          <div class="row" style="margin-top:11px">
+            <input class="input" id="mcpName" placeholder="名称，如 mcp001">
+            <input class="input grow" id="mcpUrl" placeholder="HTTP URL，如 http://127.0.0.1:8765/mcp/...">
+            <button type="button" class="btn sm" id="mcpTestBtn">测试连通</button>
+            <button type="button" class="btn primary sm" id="mcpSaveBtn">保存</button>
+          </div>
+          <pre class="code" id="mcpTestOut" hidden></pre>
+        </div>
+      </section>
+
+      <!-- ===== 视图 5：本地反代（API 网关） ===== -->
+      <section class="view" id="view-api" hidden>
+        <div class="panel">
+          <div class="panel-head">
+            <span>OpenAI 兼容 API 反代网关（awsquick-2api）</span>
+            <span class="pill" id="quickgw-status">检查中…</span>
+          </div>
+          <div class="row" style="margin-bottom:10px">
+            <code id="quickgw-url">—</code>
+            <button type="button" class="btn sm" id="quickgw-copy">复制 /v1 地址</button>
+            <a class="btn ghost sm" id="quickgw-open-panel" target="_blank" rel="noopener">新窗口打开面板</a>
+          </div>
+          <div class="row">
+            <button type="button" class="btn primary sm" id="quickgw-start">启动网关</button>
+            <button type="button" class="btn sm" id="quickgw-restart">重启网关</button>
+            <button type="button" class="btn ghost sm" id="quickgw-stop">停止网关</button>
+            <label class="inline" style="margin-left:auto"><input type="checkbox" id="gwAutostartChk"> 随软件自动启动网关</label>
+          </div>
+          <div class="hint" id="quickgw-hint" style="margin-top:8px">独立于桌面端账号池，按需启停。</div>
+        </div>
+
+        <div class="cards-row" id="quickgw-summary"></div>
+
+        <div class="panel">
+          <div class="panel-head">网关账号池 <span class="muted" id="quickgw-accounts-meta"></span></div>
+          <div class="table-wrap"><table class="table" id="quickgw-accounts"></table></div>
+        </div>
+
+        <details class="panel">
+          <summary class="panel-head" style="cursor:pointer;margin-bottom:0">在线测试 API</summary>
+          <form id="quickgw-test" style="margin-top:11px">
+            <div class="row">
+              <select class="select sm" id="quickgw-model">
+                <option value="fast">fast</option>
+                <option value="balanced">balanced</option>
+                <option value="smart" selected>smart</option>
+                <option value="advanced">advanced</option>
+              </select>
+              <input class="input" id="quickgw-key" type="password" autocomplete="off" placeholder="API Key（可留空）">
+              <label class="inline"><input id="quickgw-stream" type="checkbox"> 流式输出</label>
+            </div>
+            <div class="row" style="margin-top:8px">
+              <input class="input grow" id="quickgw-prompt" value="请只回复 OK" required>
+              <button type="submit" class="btn primary sm">发送测试</button>
+            </div>
+            <pre class="code" id="quickgw-output" hidden></pre>
+            <p id="quickgw-usage" class="muted" hidden></p>
+          </form>
+        </details>
+      </section>
+
+      <!-- ===== 视图 6：设置与备份 ===== -->
+      <section class="view" id="view-settings" hidden>
+        <div class="panel">
+          <div class="panel-head">使用人标签与余量预警</div>
+          <div class="form-grid">
+            <label>快捷使用人标签（逗号分隔）
+              <input class="input" id="familyUsersInput" placeholder="爸爸,妈妈,我">
+            </label>
+            <label>月度余量紧张提醒（已用 %）
+              <input class="input num" id="budgetMonthly" type="number" min="10" max="98">
+            </label>
+            <label>会话余量紧张提醒（已用 %）
+              <input class="input num" id="budgetSession" type="number" min="10" max="98">
+            </label>
+          </div>
+          <div class="row" style="margin-top:11px">
+            <button type="button" class="btn primary sm" id="saveSettingsBtn">保存设置</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">账号数据备份与恢复</div>
+          <div class="row" style="margin-bottom:10px">
+            <select id="backupAccountSelect" class="select"></select>
+            <button type="button" class="btn primary sm" id="backupNowBtn">立即备份</button>
+            <button type="button" class="btn ghost sm" id="reloadBackupsBtn">刷新列表</button>
+          </div>
+          <div class="table-wrap"><table class="table" id="backupTable"></table></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">清理客户端缓存</div>
+          <div class="row">
+            <label class="inline"><input type="checkbox" class="purge" value="browser" checked> 浏览器缓存</label>
+            <label class="inline"><input type="checkbox" class="purge" value="web"> 网页抓取缓存</label>
+            <label class="inline"><input type="checkbox" class="purge" value="temp"> 临时目录</label>
+            <button type="button" class="btn danger sm" id="purgeBtn">清理缓存</button>
+          </div>
+          <div class="hint" style="margin-top:7px">仅清理缓存目录，不影响聊天记录与账号凭据。</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 遮罩 / 弹窗 / Toast -->
+  <div class="busy-mask" id="busyMask" hidden>
+    <div class="busy-box">
+      <div class="spinner lg"></div>
+      <div class="busy-title" id="busyTitle">正在处理…</div>
+      <div class="muted" id="busySub">请稍候几秒</div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal" hidden>
+    <div class="modal-box" id="modalBox">
+      <div class="modal-head">
+        <div class="modal-title" id="modalTitle"></div>
+        <button type="button" class="btn ghost icon sm" id="modalX" aria-label="关闭">
+          <svg class="ico ico-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+</div>
+<script>window.__QWM_TOKEN__ = "__QWM_TOKEN_VALUE__";</script>
+<script src="/app.js"></script>
+</body>
+</html>

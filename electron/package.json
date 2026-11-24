@@ -1,0 +1,9 @@
+{
+  "name": "quick-account-manager",
+  "productName": "Quick 多账号管理器",
+  "version": "1.0.0",
+  "description": "Quick 多账号管理器：账号、额度、配置、运维一体化面板",
+  "main": "main.js",
+  "private": true,
+  "author": "local"
+}

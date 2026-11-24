@@ -1,0 +1,34 @@
+﻿# 运行时数据（含账号凭据、本地对话归档、备份、日志、本机路径配置）
+data/
+tmp/
+portable/
+dist/
+node_modules/
+electron-runtime/
+.env
+.env.*
+
+# 第三方参考与提取的外部资料
+AWS-Quick-Tools-Windows*/
+skills/
+
+# 内部调试 / 评测临时文件
+.lmfpd-*
+.sequence-*
+uitest/
+WORKDIR.txt
+交接文档.md
+test-multi-account.js
+lib/desktop-auth-link.js
+
+# 仅保留 tools/local-tools-mcp.js，忽略其余实验性调试脚本
+tools/*
+!tools/local-tools-mcp.js
+
+# 日志、备份、打包产物
+*.log
+*.bak*
+*.zip
+*.png
+!electron/icon.png
+!electron/tray.png
