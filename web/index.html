@@ -25,11 +25,6 @@
         <span class="nav-count" id="navAccCount">0</span>
       </button>
 
-      <button type="button" class="nav-btn" data-nav="home" title="一键换号">
-        <svg class="ico" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span class="nav-label">一键换号</span>
-      </button>
-
       <button type="button" class="nav-btn" data-nav="conversations" title="对话同步">
         <svg class="ico" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span class="nav-label">对话同步</span>
@@ -100,55 +95,33 @@
         </div>
       </div>
 
-      <!-- ===== 视图 1：一键换号（概览与快速切换） ===== -->
-      <section class="view" id="view-home" hidden>
-        <div class="hero-card">
-          <div class="hero-left">
-            <div class="hero-kicker">当前使用账号</div>
-            <div class="hero-account">
-              <div class="avatar" id="heroAvatar">Q</div>
-              <div style="min-width:0;flex:1">
-                <div class="hero-name-row">
-                  <h1 id="heroName">加载中…</h1>
-                  <span class="badge" id="heroBadge">检测中</span>
+      <!-- ===== 视图 1：账户管理（融合一键换号 + Kiro 风格三列标签卡片） ===== -->
+      <section class="view" id="view-accounts">
+        <!-- 紧凑顶部快捷换号条 -->
+        <div class="quick-bar" id="quickBar">
+          <div class="qb-left">
+            <div class="avatar sm" id="heroAvatar">Q</div>
+            <div class="qb-info">
+              <div class="qb-name-row">
+                <strong class="qb-name" id="heroName">加载中…</strong>
+                <span class="badge" id="heroBadge">检测中</span>
+                <span class="qb-quota" id="heroSub">正在读取账号池…</span>
+              </div>
+              <div class="qb-meta-row">
+                <span class="qb-hint" id="heroNextHint">自动挑选状态正常且余量最充足的空闲账号</span>
+                <div class="qb-users">
+                  <span class="muted" style="font-size:11px">使用人</span>
+                  <div class="chips" id="familyUserChips"></div>
                 </div>
-                <div class="hero-sub" id="heroSub">正在读取账号池状态…</div>
               </div>
             </div>
-            <div class="hero-bars" id="heroBars"></div>
-            <div class="user-chips-row">
-              <span class="muted">当前使用人</span>
-              <div class="chips" id="familyUserChips"></div>
-            </div>
           </div>
-
-          <div class="hero-actions">
-            <button type="button" class="btn primary xl" id="heroOpenBtn">打开 AWS Quick</button>
-            <button type="button" class="btn accent-solid xl" id="heroClaimBtn">一键换空闲号</button>
-            <div class="hero-next-hint" id="heroNextHint">自动挑选状态正常且余量最充足的空闲账号</div>
+          <div class="qb-actions">
+            <button type="button" class="btn primary" id="heroOpenBtn">打开 AWS Quick</button>
+            <button type="button" class="btn accent-solid" id="heroClaimBtn">一键换空闲号</button>
           </div>
         </div>
 
-        <div class="filter-bar-row">
-          <div class="filter-left">
-            <strong style="color:var(--text)">共享账号池</strong>
-            <span id="poolSummaryText">—</span>
-          </div>
-          <div class="filter-right">
-            <button type="button" class="btn sm ghost" id="homeMaskBtn">隐私打码</button>
-            <button type="button" class="btn sm ghost" id="familyRefreshBtn">刷新状态</button>
-          </div>
-        </div>
-
-        <div class="card-grid" id="accountGrid"></div>
-        <div class="empty-card" id="familyEmpty" hidden>
-          <div class="empty-title">账号池暂无可用账号</div>
-          <div class="muted">点击左侧「账户管理」添加或采集本机账号。</div>
-        </div>
-      </section>
-
-      <!-- ===== 视图 2：账户管理（Kiro 风格三列高密度标签卡片） ===== -->
-      <section class="view" id="view-accounts">
         <div class="search-bar-row">
           <div class="search-wrap">
             <svg class="ico ico-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -219,64 +192,152 @@
 
       <!-- ===== 视图 4：通用配置 ===== -->
       <section class="view" id="view-template" hidden>
-        <div class="panel">
-          <div class="panel-head">
-            <span>本机终端与全盘文件权限（Local Tools MCP）</span>
-            <span class="pill" id="localToolsPill">检测中…</span>
+        <div class="cfg-grid">
+          <!-- 卡片 1：本机终端与全盘文件权限 -->
+          <div class="cfg-card">
+            <div class="cfg-card-top">
+              <div class="cfg-card-head-left">
+                <span class="cfg-card-ico purple">
+                  <svg class="ico" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                </span>
+                <div class="cfg-card-titles">
+                  <div class="cfg-card-title">本机终端与文件权限</div>
+                  <div class="cfg-card-sub">Local Tools MCP · 自动放行免弹窗</div>
+                </div>
+              </div>
+              <div class="cfg-card-head-right">
+                <span class="pill" id="localToolsPill">检测中…</span>
+                <label class="switch" title="新号自动授予完全权限并免确认放行">
+                  <input type="checkbox" id="localToolsAutoAllowChk" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            <p class="cfg-card-desc">挂载无乱码本机终端与全盘文件工具（<code>run_command</code> / <code>read_file</code> / <code>write_file</code> / <code>list_dir</code>），新老账号默认自动继承。</p>
+            <div class="cfg-card-foot">
+              <button type="button" class="btn primary sm" id="localToolsEnableBtn">全账号放开并重启生效</button>
+              <button type="button" class="btn danger sm" id="localToolsDisableBtn">收回权限</button>
+            </div>
+            <div class="cfg-card-hint" id="localToolsHint">—</div>
           </div>
-          <p class="muted" style="margin:0">通过官方 MCP 协议挂载本机无乱码终端与文件工具（<code>run_command</code> / <code>read_file</code> / <code>write_file</code> / <code>list_dir</code>），新老账号自动继承。</p>
-          <div class="row" style="margin-top:11px">
-            <label class="inline"><input type="checkbox" id="localToolsAutoAllowChk" checked> 工具调用自动放行（免每次弹窗确认）</label>
+
+          <!-- 卡片 2：Quick 窗口内嵌真实模型与思考强度 -->
+          <div class="cfg-card">
+            <div class="cfg-card-top">
+              <div class="cfg-card-head-left">
+                <span class="cfg-card-ico teal">
+                  <svg class="ico" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </span>
+                <div class="cfg-card-titles">
+                  <div class="cfg-card-title">窗口内嵌真实模型标注</div>
+                  <div class="cfg-card-sub">标准 CDP 调试端口 <code>:9222</code></div>
+                </div>
+              </div>
+              <div class="cfg-card-head-right">
+                <span class="pill" id="cdpBadgePill">检测中…</span>
+                <label class="switch" title="切号 / 启动 AWS Quick 时默认开启 :9222">
+                  <input type="checkbox" id="cdpBadgeChk" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            <p class="cfg-card-desc">零修改安装包，在每条 AI 回复下方直接展示实际底层模型与思考强度（如 <code>Opus 5.5 · High thinking</code>）。</p>
+            <div class="cfg-card-foot">
+              <button type="button" class="btn primary sm" id="cdpRestartBtn">重启 Quick 并开启 9222</button>
+              <button type="button" class="btn sm" id="cdpAttachBtn">立即刷新注入</button>
+            </div>
+            <div class="cfg-card-hint" id="cdpBadgeHint">—</div>
           </div>
-          <div class="row" style="margin-top:11px">
-            <button type="button" class="btn primary sm" id="localToolsEnableBtn">全账号放开并重启 Quick 生效</button>
-            <button type="button" class="btn danger sm" id="localToolsDisableBtn">收回本机命令权限</button>
+
+          <!-- 卡片 3：自带技能精简 & 简体中文 -->
+          <div class="cfg-card">
+            <div class="cfg-card-top">
+              <div class="cfg-card-head-left">
+                <span class="cfg-card-ico green">
+                  <svg class="ico" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </span>
+                <div class="cfg-card-titles">
+                  <div class="cfg-card-title">技能精简与简体中文</div>
+                  <div class="cfg-card-sub">云端接口同步 · 新号默认自动执行</div>
+                </div>
+              </div>
+              <div class="cfg-card-head-right">
+                <span class="pill ok" id="skillsSummaryPill">默认开启</span>
+                <label class="switch" title="新增/导入账号时自动关闭冗余内置技能并设为简体中文">
+                  <input type="checkbox" id="skillsAutoChk" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="cfg-inline-bar">
+              <select class="select sm" id="skillsAccountSelect"></select>
+              <label class="inline"><input type="checkbox" id="skillsKeepAcpChk" checked> 保留 Coding Agent Skills</label>
+            </div>
+            <div class="cfg-card-foot">
+              <button type="button" class="btn primary sm" id="skillsDisableAllBtn">关闭冗余技能</button>
+              <button type="button" class="btn accent sm" id="skillsSetZhBtn">设为简体中文</button>
+              <button type="button" class="btn sm" id="skillsEnableAllBtn">全部开启</button>
+              <button type="button" class="btn ghost sm" id="skillsLoadBtn">技能列表</button>
+            </div>
+            <div class="cfg-card-hint" id="skillsStatusHint">批量清理 50+ 冗余内置技能减少上下文占用，并一键统一简体中文。</div>
           </div>
-          <div class="hint" id="localToolsHint" style="margin-top:8px">—</div>
+
+          <!-- 卡片 4：家庭通用配置模板 -->
+          <div class="cfg-card">
+            <div class="cfg-card-top">
+              <div class="cfg-card-head-left">
+                <span class="cfg-card-ico blue">
+                  <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                </span>
+                <div class="cfg-card-titles">
+                  <div class="cfg-card-title">家庭通用配置模板</div>
+                  <div class="cfg-card-sub">切号自动同步 MCP / 目录 / 权限 / ACP</div>
+                </div>
+              </div>
+              <div class="cfg-card-head-right">
+                <span class="pill ok" id="tplStatusPill">自动同步</span>
+                <label class="switch" title="切换账号时自动同步通用配置模板">
+                  <input type="checkbox" id="tplAutoChk" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+            <div class="cfg-inline-bar">
+              <span class="muted" style="font-size:11.5px">模板来源</span>
+              <select class="select sm" id="tplSourceSelect"></select>
+            </div>
+            <div class="cfg-card-foot">
+              <button type="button" class="btn primary sm" id="tplSaveBtn">存为通用模板</button>
+              <button type="button" class="btn sm" id="tplApplyAllBtn">立即同步到全部账号</button>
+            </div>
+            <div class="cfg-card-hint" id="tplMetaInfo">—</div>
+          </div>
         </div>
 
-        <div class="panel">
-          <div class="panel-head">
-            <span>自带技能一键精简（减少上下文占用与干扰）</span>
-            <span class="pill" id="skillsSummaryPill">按需读取</span>
+        <!-- 展开的云端技能独立开关抽屉（点击「技能列表」显示） -->
+        <div class="panel" id="skillsDrawer" hidden>
+          <div class="panel-head" style="margin-bottom:6px">
+            <span>云端技能明细（点击即可实时切换）</span>
+            <button type="button" class="btn ghost sm" id="skillsDrawerCloseBtn">收起列表</button>
           </div>
-          <p class="muted" style="margin:0">通过 AWS Quick 官方云端接口批量关闭/开启内置技能（支持单号或全号池同步，云端持久生效）。</p>
-          <div class="row" style="margin-top:11px">
-            <select class="select sm" id="skillsAccountSelect"></select>
-            <label class="inline"><input type="checkbox" id="skillsKeepAcpChk" checked> 保留第一个「Coding Agent Skills」</label>
-          </div>
-          <div class="row" style="margin-top:10px">
-            <button type="button" class="btn primary sm" id="skillsDisableAllBtn">一键关闭自带技能</button>
-            <button type="button" class="btn sm" id="skillsEnableAllBtn">全部重新开启</button>
-            <button type="button" class="btn accent sm" id="skillsSetZhBtn">一键设为简体中文</button>
-            <button type="button" class="btn ghost sm" id="skillsLoadBtn">查看 / 单独开关列表</button>
-          </div>
-          <div class="hint" id="skillsStatusHint" style="margin-top:8px">选择「全部账号」可一次清理整个号池的 50+ 个冗余内置技能。</div>
-          <div class="skills-list" id="skillsListBox" hidden></div>
+          <div class="skills-list" id="skillsListBox"></div>
         </div>
 
-        <div class="panel">
-          <div class="panel-head">家庭通用配置模板（换号自动同步）</div>
-          <div class="row">
-            <select class="select" id="tplSourceSelect"></select>
-            <button type="button" class="btn primary sm" id="tplSaveBtn">存为通用模板</button>
-            <button type="button" class="btn sm" id="tplApplyAllBtn">立即同步到全部账号</button>
-            <label class="inline" style="margin-left:auto"><input type="checkbox" id="tplAutoChk"> 切换账号时自动同步</label>
-          </div>
-          <div class="hint" id="tplMetaInfo" style="margin-top:8px">—</div>
-        </div>
-
-        <div class="panel">
+        <!-- 下方全宽面板：MCP 服务器管理 -->
+        <div class="panel mcp-panel">
           <div class="panel-head">
-            <span>MCP 服务器管理</span>
+            <div class="row" style="gap:8px">
+              <span>MCP 服务器管理</span>
+              <span class="pill" id="mcpCountPill">0 个</span>
+            </div>
             <select class="select sm" id="mcpAccountSelect"></select>
           </div>
           <div class="mcp-list" id="mcpList"></div>
-          <div class="row" style="margin-top:11px">
-            <input class="input" id="mcpName" placeholder="名称，如 mcp001">
+          <div class="mcp-add-row">
+            <input class="input" id="mcpName" placeholder="名称，如 mcp001" style="width:160px">
             <input class="input grow" id="mcpUrl" placeholder="HTTP URL，如 http://127.0.0.1:8765/mcp/...">
             <button type="button" class="btn sm" id="mcpTestBtn">测试连通</button>
-            <button type="button" class="btn primary sm" id="mcpSaveBtn">保存</button>
+            <button type="button" class="btn primary sm" id="mcpSaveBtn">添加保存</button>
           </div>
           <pre class="code" id="mcpTestOut" hidden></pre>
         </div>
@@ -296,17 +357,51 @@
           </div>
           <div class="row">
             <button type="button" class="btn primary sm" id="quickgw-start">启动网关</button>
+            <button type="button" class="btn accent sm" id="quickgw-sync-pool" title="免重登导入桌面号（自动跳过已有独立登录的号，绝不覆盖）">同步桌面号（免重登）</button>
+            <button type="button" class="btn sm" id="quickgw-clear-shared" title="移除共享桌面凭据的号，只保留在反代里独立登录的号">仅保留独立登录号</button>
             <button type="button" class="btn sm" id="quickgw-restart">重启网关</button>
             <button type="button" class="btn ghost sm" id="quickgw-stop">停止网关</button>
             <label class="inline" style="margin-left:auto"><input type="checkbox" id="gwAutostartChk"> 随软件自动启动网关</label>
           </div>
-          <div class="hint" id="quickgw-hint" style="margin-top:8px">独立于桌面端账号池，按需启停。</div>
+          <div class="hint" id="quickgw-hint" style="margin-top:8px">支持两种账号来源：<strong>独立反代登录</strong>（在反代面板单独授权，与桌面 Quick 互不抢 Token）和<strong>共享桌面凭据</strong>（免重登借用，用反代时请关掉桌面 Quick）。</div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <span>第三方客户端一键接入参数（会话 &amp; 项目永不丢失）</span>
+            <span class="pill ok">OpenAI 兼容 /v1</span>
+          </div>
+          <div class="form-grid" style="gap:10px">
+            <div>
+              <div class="muted" style="font-size:11.5px;margin-bottom:4px">API Base URL（推荐直连）</div>
+              <div class="row"><code id="quickgw-direct-url">http://127.0.0.1:3426/v1</code><button type="button" class="btn sm ghost" id="quickgw-copy-direct">复制</button></div>
+            </div>
+            <div>
+              <div class="muted" style="font-size:11.5px;margin-bottom:4px">API Key（未设密钥时填任意非空值）</div>
+              <div class="row"><code>quick-local</code><button type="button" class="btn sm ghost" id="quickgw-copy-key">复制</button></div>
+            </div>
+            <div>
+              <div class="muted" style="font-size:11.5px;margin-bottom:4px">可用模型名（smart = Opus 5.5）</div>
+              <div class="row"><code>smart</code><code>balanced</code><code>fast</code><code>advanced</code></div>
+            </div>
+          </div>
+          <div class="hint" style="margin-top:8px;color:var(--amber)">提示：使用本地反代期间建议关闭桌面版 AWS Quick，避免两端同时刷新同一账号的 Refresh Token 导致互踢。</div>
         </div>
 
         <div class="cards-row" id="quickgw-summary"></div>
 
         <div class="panel">
-          <div class="panel-head">网关账号池 <span class="muted" id="quickgw-accounts-meta"></span></div>
+          <div class="panel-head">
+            <div class="row" style="gap:8px">
+              <span>网关账号池管理</span>
+              <span class="muted" id="quickgw-accounts-meta" style="font-weight:400"></span>
+            </div>
+            <div class="row" style="gap:6px">
+              <button type="button" class="btn primary sm" id="quickgw-add-ind">+ 独立登录新号</button>
+              <button type="button" class="btn sm" id="quickgw-pick-desk">选号导入桌面</button>
+              <button type="button" class="btn ghost sm" id="quickgw-refresh-pool">刷新</button>
+            </div>
+          </div>
           <div class="table-wrap"><table class="table" id="quickgw-accounts"></table></div>
         </div>
 

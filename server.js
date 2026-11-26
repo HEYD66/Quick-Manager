@@ -13,6 +13,7 @@ const C = require('./lib/core');
 const O = require('./lib/ops');
 const Pool = require('./lib/pool');
 const Conv = require('./lib/conversations');
+const QuickBadge = require('./lib/quick-badge');
 const quickgw = require('./lib/quickgw');
 const quick2api = require('./lib/quick2api');
 
@@ -101,6 +102,19 @@ setInterval(() => {
   Pool.refreshAllQuotas().then(broadcast).catch(() => {});
 }, 10 * 60 * 1000).unref();
 
+// ---------- 后台自动附着 AWS Quick 9222 调试端口（在每条回复下方展示实际模型） ----------
+async function tryAttachQuickBadge() {
+  const store = Pool.loadStore();
+  if (store.cdpModelBadge === false) return { ok: false, skipped: true };
+  const activeId = store.activeAccountId || null;
+  const entries = activeId ? Conv.collectUsageEntriesForAccount(activeId, 15) : [];
+  return QuickBadge.attachAndSync(entries);
+}
+
+setInterval(() => {
+  tryAttachQuickBadge().catch(() => {});
+}, 6000).unref();
+
 // ---------- HTTP 路由 ----------
 const server = http.createServer(async (req, res) => {
   const parsed = new URL(req.url || '/', `http://${HOST}:${PORT}`);
@@ -124,11 +138,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (p === '/api/quickgw' && req.method === 'GET') {
-      return json(res, 200, await quickgw.status());
+      return json(res, 200, await quickgw.status(Pool.loadStore().accounts));
     }
 
     if (['/api/quickgw/start', '/api/quickgw/stop', '/api/quickgw/restart',
-      '/api/quickgw/login', '/api/quickgw/login/submit',
+      '/api/quickgw/sync-pool', '/api/quickgw/clear-shared',
+      '/api/quickgw/account/toggle', '/api/quickgw/account/remove',
+      '/api/quickgw/login', '/api/quickgw/login/submit', '/api/quickgw/login/status',
       '/api/quickgw/keys', '/api/quickgw/keys/delete'].includes(p)) {
       if (!quick2api.localBrowser(req, PORT) || !authorized(req)) {
         return json(res, 403, { ok: false, error: '本机管理请求未授权' });
@@ -158,8 +174,38 @@ const server = http.createServer(async (req, res) => {
           quickgwStartedByUs = true;
           return json(res, 200, { ok: true, stopped, result });
         }
+        if (p === '/api/quickgw/sync-pool') {
+          await Pool.syncFromDesktop({ includeExisting: false }).catch(() => {});
+          const store = Pool.loadStore();
+          const ids = Array.isArray(body.ids) && body.ids.length ? new Set(body.ids) : null;
+          const list = ids ? store.accounts.filter((a) => ids.has(a.id) || ids.has(a.profileId)) : store.accounts;
+          const result = await quickgw.syncFromPool(list, { restart: body.restart !== false });
+          if (result && result.stack && (result.stack.gateway || result.stack.panel)) quickgwStartedByUs = true;
+          return json(res, 200, result);
+        }
+        if (p === '/api/quickgw/clear-shared') {
+          const store = Pool.loadStore();
+          const result = await quickgw.clearDesktopShared(store.accounts, { restart: body.restart !== false });
+          return json(res, 200, result);
+        }
+        if (p === '/api/quickgw/account/toggle') {
+          const result = await quickgw.toggleAccountPaused(body.key, !!body.paused, { restart: body.restart !== false });
+          return json(res, 200, result);
+        }
+        if (p === '/api/quickgw/account/remove') {
+          const result = await quickgw.removeAccount(body.key, { restart: body.restart !== false });
+          return json(res, 200, result);
+        }
         if (p === '/api/quickgw/login') {
+          if (!(await quickgw.portOpen(quickgw.gatewayPort()))) {
+            await quickgw.startStack();
+            quickgwStartedByUs = true;
+          }
           const r = await quickgw.loginStart();
+          return json(res, r.ok ? 200 : 502, r.json || r);
+        }
+        if (p === '/api/quickgw/login/status') {
+          const r = await quickgw.loginStatus();
           return json(res, r.ok ? 200 : 502, r.json || r);
         }
         if (p === '/api/quickgw/login/submit') {
@@ -223,6 +269,14 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && p === '/api/pool/skills') {
       return json(res, 200, await Pool.listAccountSkills(query.id || null));
+    }
+
+    if (req.method === 'GET' && p === '/api/cdp/status') {
+      return json(res, 200, { ok: true, cdp: QuickBadge.getStatus() });
+    }
+
+    if (req.method === 'GET' && p === '/api/cdp/inspect') {
+      return json(res, 200, await QuickBadge.inspectDom());
     }
 
     if (req.method === 'GET' && p === '/api/pool/oauth/status') {
@@ -425,6 +479,10 @@ const server = http.createServer(async (req, res) => {
           quickgwAutostart: s.quickgwAutostart,
           autoSyncConversationsOnSwitch: s.autoSyncConversationsOnSwitch !== false,
           autoCopyHandoffOnSwitch: s.autoCopyHandoffOnSwitch !== false,
+          cdpModelBadge: s.cdpModelBadge !== false,
+          autoGrantFullAccess: s.autoGrantFullAccess !== false,
+          autoPruneSkills: s.autoPruneSkills !== false,
+          autoSetZhCn: s.autoSetZhCn !== false,
           commonTemplate: s.commonTemplate,
         });
       }
@@ -544,6 +602,18 @@ const server = http.createServer(async (req, res) => {
           locale: body.locale || 'zh-CN',
           timezone: body.timezone || 'Asia/Shanghai',
         });
+        return json(res, 200, r);
+      }
+
+      if (p === '/api/cdp/attach') {
+        const r = await tryAttachQuickBadge();
+        return json(res, 200, r);
+      }
+
+      if (p === '/api/cdp/restart-quick') {
+        Pool.setFamilySettings({ cdpModelBadge: true });
+        const r = await Pool.restartQuickWithCdp();
+        broadcast();
         return json(res, 200, r);
       }
 

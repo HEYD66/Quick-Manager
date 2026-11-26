@@ -7,7 +7,6 @@ const SEG_COUNT = 28;
 
 const NAV_TITLES = {
   accounts: '账户管理',
-  home: '一键换号',
   conversations: '对话同步',
   template: '通用配置',
   api: '本地反代',
@@ -63,6 +62,31 @@ function fmtBytes(n) {
   let i = 0, v = Number(n);
   while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
   return v.toFixed(v < 10 ? 1 : 0) + ' ' + u[i];
+}
+
+function fmtTok(n) {
+  const v = Number(n || 0);
+  if (!v) return '0';
+  if (v >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+  return String(v);
+}
+
+function shortModelName(id) {
+  const s = String(id || '').trim();
+  if (!s) return '';
+  return s
+    .replace(/^(?:us|eu|ap|global)\.(?:anthropic|amazon)\./i, '')
+    .replace(/^anthropic\./i, '')
+    .replace(/^claude-/i, '');
+}
+
+function modelTagHtml(lm) {
+  if (!lm || !lm.resolvedModel) return '';
+  const full = lm.resolvedModel;
+  const short = shortModelName(full);
+  const tip = `实际底层模型：${full}` + (lm.tier ? `（档位：${lm.tier}）` : '') + (lm.title ? ` · 最近对话《${lm.title}》` : '');
+  return `<span class="k-tag model" title="${esc(tip)}">${esc(short)}</span>`;
 }
 
 function fmtCountdown(resetsAtSec) {
@@ -210,19 +234,18 @@ function applySidebarCollapse() {
 
 function syncToolbarToggles() {
   const maskLabel = S.privacyMask ? '隐私打码中' : '隐私打码';
-  ['homeMaskBtn', 'admMaskBtn'].forEach((id) => {
-    const b = $(id);
-    if (!b) return;
-    b.textContent = maskLabel;
-    b.classList.toggle('active-toggle', S.privacyMask);
-  });
+  const admMask = $('admMaskBtn');
+  if (admMask) {
+    admMask.textContent = maskLabel;
+    admMask.classList.toggle('active-toggle', S.privacyMask);
+  }
   const cmpBtn = $('admCompactBtn');
   if (cmpBtn) {
     cmpBtn.textContent = S.compact ? '紧凑模式中' : '紧凑模式';
     cmpBtn.classList.toggle('active-toggle', S.compact);
   }
-  $('accountGrid').classList.toggle('compact', S.compact);
-  $('admCardGrid').classList.toggle('compact', S.compact);
+  const admGrid = $('admCardGrid');
+  if (admGrid) admGrid.classList.toggle('compact', S.compact);
 }
 
 $('themeBtn').onclick = () => {
@@ -243,7 +266,6 @@ function togglePrivacyMask() {
   syncToolbarToggles();
   renderCurrentView();
 }
-$('homeMaskBtn').onclick = togglePrivacyMask;
 $('admMaskBtn').onclick = togglePrivacyMask;
 
 $('admCompactBtn').onclick = () => {
@@ -265,8 +287,7 @@ function setNav(nav) {
   });
   $('pageTitle').textContent = NAV_TITLES[nav];
 
-  if (nav === 'home') renderHome();
-  else if (nav === 'accounts') renderAdminAccounts();
+  if (nav === 'accounts') renderAdminAccounts();
   else if (nav === 'conversations') loadConversationsView();
   else if (nav === 'template') loadTemplateTab();
   else if (nav === 'api') loadQuickGw();
@@ -447,12 +468,8 @@ function statusPillForCard(a) {
   return '<span class="badge ok">正常</span>';
 }
 
-/* ---------------- 视图 1：主页（家人极简一键取用 + 三列标签卡） ---------------- */
-function renderHome() {
-  const pool = S.pool;
-  if (!pool) return;
-  renderTopbar();
-
+/* ---------------- 顶部紧凑快捷换号条（融合进账户管理页） ---------------- */
+function renderQuickBar(pool) {
   const act = pool.active;
   if (act) {
     $('heroAvatar').textContent = String(act.label || '?').trim().charAt(0).toUpperCase();
@@ -460,21 +477,16 @@ function renderHome() {
     $('heroName').textContent = maskIdentity(act.label);
     $('heroBadge').textContent = act.status.label;
     $('heroBadge').className = 'badge ' + (act.status.tone === 'bad' ? 'bad' : act.status.tone === 'warn' ? 'warn' : 'ok');
-    const plan = act.quota && act.quota.planLabel ? act.quota.planLabel + ' · ' : '';
-    $('heroSub').textContent = act.needsRelogin
-      ? '这个账号登录已过期，请直接点右侧「一键换空闲号」'
-      : `${plan}${act.quota && act.quota.fetchedAt ? '额度更新于 ' + fmtAgo(act.quota.fetchedAt) : '点击右侧按钮即可开始使用'}`;
-
     const q = act.quota;
-    if (q && q.ok) {
-      $('heroBars').innerHTML =
-        renderSegmentedMeter(q.monthly, { title: '月度已用', fetchedAt: q.fetchedAt, showCountdown: true })
-        + renderSegmentedMeter(q.session, { title: '本轮会话', fetchedAt: q.fetchedAt, showCountdown: true });
+    if (act.needsRelogin) {
+      $('heroSub').textContent = '登录已过期，请直接点右侧「一键换空闲号」';
+    } else if (q && q.ok) {
+      const mText = q.monthly && q.monthly.limit ? `月度 ${q.monthly.used}/${q.monthly.limit}` : '';
+      const sText = q.session && q.session.limit ? `会话 ${q.session.used}/${q.session.limit}` : '';
+      const rText = q.monthly && q.monthly.resets_at ? fmtCountdown(q.monthly.resets_at) : '';
+      $('heroSub').textContent = [mText, sText, rText].filter(Boolean).join(' · ') || '状态正常';
     } else {
-      $('heroBars').innerHTML = renderSegmentedMeter(null, {
-        title: '月度额度',
-        fallbackText: act.needsRelogin ? '需要管理员重新登录' : '尚未刷新云端额度',
-      });
+      $('heroSub').textContent = '点击右侧「打开 AWS Quick」或刷新额度';
     }
   } else {
     $('heroAvatar').textContent = 'Q';
@@ -482,18 +494,15 @@ function renderHome() {
     $('heroName').textContent = '暂无当前账号';
     $('heroBadge').textContent = '未配置';
     $('heroBadge').className = 'badge';
-    $('heroSub').textContent = '请点击左下角「进入管理后台」添加或采集账号';
-    $('heroBars').innerHTML = '';
+    $('heroSub').textContent = '点击下方「添加账号」或「采集本机」';
   }
 
-  // 当前使用人快捷标签
   const users = pool.familyUsers || ['爸爸', '妈妈', '我'];
   $('familyUserChips').innerHTML = users.map((u) => {
     const active = pool.currentUserLabel === u;
     return `<button type="button" class="chip ${active ? 'active' : ''}" data-family-user="${esc(u)}">${esc(u)}</button>`;
-  }).join('') + (pool.currentUserLabel ? `<button type="button" class="chip" data-family-user="">取消</button>` : '');
+  }).join('') + (pool.currentUserLabel ? `<button type="button" class="chip" data-family-user="">×` + `</button>` : '');
 
-  // 一键换空闲号提示
   const rec = pool.recommendedNext;
   const claimBtn = $('heroClaimBtn');
   if (rec) {
@@ -505,59 +514,8 @@ function renderHome() {
     $('heroNextHint').textContent = '暂无其他空闲号，当前账号仍可正常使用';
   } else {
     claimBtn.disabled = true;
-    $('heroNextHint').textContent = '暂无空闲账号，请联系管理员添加或修复';
+    $('heroNextHint').textContent = '暂无空闲可用账号，请添加或修复登录';
   }
-
-  // 共享账号池三列卡片（保留 #accountGrid ID 兼容自检）
-  const s = pool.summary;
-  $('poolSummaryText').innerHTML = `共 ${s.total} 个 <span class="badge ok">空闲 ${s.idleReady}</span>`
-    + (s.needsMaintenance ? ` <span class="badge bad">待修 ${s.needsMaintenance}</span>` : '');
-
-  const grid = $('accountGrid');
-  $('familyEmpty').hidden = pool.accounts.length > 0;
-  grid.innerHTML = pool.accounts.map((a) => {
-    const disabled = !a.status.selectable;
-    const btnText = a.active ? '当前使用中'
-      : (a.needsRelogin ? '等待管理员修复'
-        : (a.status.code === 'exhausted' ? '额度已满' : '切换到这个号'));
-    const btnCls = a.active ? 'ghost' : (disabled ? 'ghost' : 'primary');
-    const q = a.quota;
-    const planText = (q && q.planLabel) || 'Quick';
-    const sess = q && q.ok && q.session && q.session.limit
-      ? `会话 ${q.session.used}/${q.session.limit}`
-      : (a.lastUsedAt ? '上次 ' + fmtAgo(a.lastUsedAt) : '尚未在桌面使用');
-
-    return `
-      <div class="k-card ${a.active ? 'active' : ''} ${a.needsRelogin ? 'needs-fix' : ''}">
-        <div class="k-head">
-          <div class="k-title-wrap">
-            <div class="k-name" title="${esc(maskIdentity(a.label))}">${esc(maskIdentity(a.label))}</div>
-            <div class="k-sub">${esc(maskIdentity(a.email || a.profileId))}</div>
-            ${a.note ? `<div class="k-note">备注：${esc(a.note)}</div>` : ''}
-          </div>
-          <div class="k-badges">
-            ${a.active ? '<span class="badge ok">使用中</span>' : ''}
-            ${statusPillForCard(a)}
-          </div>
-        </div>
-
-        <div class="k-tags">
-          <span class="k-tag plan">${esc(planText)}</span>
-          <span class="k-tag">${esc(providerLabel(a))}</span>
-          ${a.group ? `<span class="k-tag grp">${esc(a.group)}</span>` : ''}
-          ${a.fullAccess ? '<span class="k-tag perm">完全权限</span>' : ''}
-        </div>
-
-        ${renderDualQuotaMeters(q, {
-          fallbackText: a.needsRelogin ? '需重新登录' : '未刷新额度',
-        })}
-
-        <div class="k-foot">
-          <div class="k-foot-left">${ICO.clock} <span>${esc(a.lastUsedAt ? '上次 ' + fmtAgo(a.lastUsedAt) : '尚未在桌面使用')}</span></div>
-          <button type="button" class="btn sm ${btnCls}" data-family-switch="${esc(a.id)}" ${a.active || disabled ? 'disabled' : ''}>${esc(btnText)}</button>
-        </div>
-      </div>`;
-  }).join('');
 }
 
 $('familyUserChips').addEventListener('click', async (ev) => {
@@ -592,35 +550,12 @@ $('heroClaimBtn').onclick = async () => {
   }
 };
 
-$('accountGrid').addEventListener('click', async (ev) => {
-  const btn = ev.target.closest('button[data-family-switch]');
-  if (!btn || btn.disabled) return;
-  const id = btn.dataset.familySwitch;
-  const acc = S.pool && S.pool.accounts.find((x) => x.id === id);
-  const lbl = acc ? acc.label : '目标账号';
-  setBusy(true, '正在切换到「' + lbl + '」…', '正在切换凭据并重启 AWS Quick');
-  try {
-    const r = await api('/api/pool/switch', { method: 'POST', body: { id, launch: true } });
-    setBusy(false);
-    toast(`已切换到「${lbl}」并正在打开 AWS Quick`);
-    handleSwitchHandoff(r, lbl);
-    refreshPool();
-  } catch (e) {
-    setBusy(false);
-    toast('切换失败：' + e.message, true);
-  }
-});
-
-$('familyRefreshBtn').onclick = async () => {
-  await refreshPool();
-  toast('已刷新状态');
-};
-
-/* ---------------- 视图 2：账户管理（Kiro 风格三列高密度卡片） ---------------- */
+/* ---------------- 视图 1：账户管理（融合一键换号 + Kiro 风格三列高密度卡片） ---------------- */
 function renderAdminAccounts() {
   const pool = S.pool;
   if (!pool) return;
   renderTopbar();
+  renderQuickBar(pool);
 
   const lt = pool.localTools || {};
   const faBtn = $('admFullAccessBtn');
@@ -728,7 +663,7 @@ function renderAdminAccounts() {
         <div class="k-foot">
           <div class="k-foot-left">${footLeft}</div>
           <div class="k-foot-acts">
-            <button type="button" class="act-ico ${a.active ? 'ok' : ''}" data-adm="switch" data-id="${esc(a.id)}" title="${a.active ? '当前正在桌面使用' : '切换到桌面'}" ${a.active || a.needsRelogin ? 'disabled' : ''}>${ICO.switch}</button>
+            <button type="button" class="act-switch-pill" data-adm="switch" data-id="${esc(a.id)}" title="${a.active ? '当前正在桌面使用' : '一键切换到此账号'}" ${a.active || a.needsRelogin ? 'disabled' : ''}>${a.active ? '使用中' : '切换'}</button>
             <button type="button" class="act-ico" data-adm="quota" data-id="${esc(a.id)}" title="刷新真实云端额度">${ICO.refresh}</button>
             <button type="button" class="act-ico ${probeCls}" data-adm="probe" data-id="${esc(a.id)}" title="${esc(probeTitle)}">${ICO.bolt}</button>
             <button type="button" class="act-ico ${a.needsRelogin ? 'ok' : ''}" data-adm="relogin" data-id="${esc(a.id)}" title="${a.needsRelogin ? '立即修复登录' : '重新登录'}">${ICO.key}</button>
@@ -781,8 +716,9 @@ $('admCardGrid').addEventListener('click', async (ev) => {
       if (r.alive) {
         const remM = r.monthlyRemaining != null ? ` · 月余 ${r.monthlyRemaining}` : '';
         const remS = r.sessionRemaining != null ? ` · 会话余 ${r.sessionRemaining}` : '';
+        const modStr = r.lastModel && r.lastModel.resolvedModel ? ` · 模型 ${shortModelName(r.lastModel.resolvedModel)}` : '';
         const sessWarn = r.sessionsOk === false ? '（会话接口受限）' : '';
-        toast(`测活通过：「${maskIdentity(acc.label)}」存活 ${r.latencyMs}ms${remM}${remS}${sessWarn}`);
+        toast(`测活通过：「${maskIdentity(acc.label)}」存活 ${r.latencyMs}ms${remM}${remS}${modStr}${sessWarn}`);
       } else {
         toast(`测活异常：「${maskIdentity(acc.label)}」${r.error || '不可用'} (${r.latencyMs || 0}ms)`, true);
       }
@@ -1359,12 +1295,18 @@ async function loadConversationsView() {
 
     box.innerHTML = S.convItems.map((c) => {
       const active = S.convSelectedKey === c.key;
+      const modPill = c.lastModel
+        ? `<span class="msg-model-pill" title="${esc(c.lastModel)}">${esc(shortModelName(c.lastModel))}</span>`
+        : '';
       return `
         <button type="button" class="conv-item ${active ? 'active' : ''}" data-conv-acc="${esc(c.accountId)}" data-conv-sid="${esc(c.sessionId)}" data-conv-key="${esc(c.key)}">
           <div class="conv-item-title">${esc(c.title || '未命名对话')}</div>
           <div class="conv-item-preview">${esc(c.preview || '（无预览）')}</div>
           <div class="conv-item-meta">
-            <span class="conv-tag" style="background:${esc(c.accountColor || '#7c3aed')}">${esc(maskIdentity(c.accountLabel || '账号'))}</span>
+            <span style="display:inline-flex;align-items:center;gap:4px;min-width:0">
+              <span class="conv-tag" style="background:${esc(c.accountColor || '#7c3aed')}">${esc(maskIdentity(c.accountLabel || '账号'))}</span>
+              ${modPill}
+            </span>
             <span>${c.messageCount || 0} 条 · ${fmtAgo(c.updatedAt)}</span>
           </div>
         </button>`;
@@ -1383,11 +1325,20 @@ async function openConversationDetail(accountId, sessionId, key) {
     const r = await api(`/api/conversations/detail?accountId=${encodeURIComponent(accountId)}&sessionId=${encodeURIComponent(sessionId)}`);
     const c = r.conversation;
     const msgs = c.messages || [];
+    const convModels = (c.models && c.models.length ? c.models : (c.lastModel ? [c.lastModel] : []));
+    const usageSummaryHtml = (convModels.length || c.totalTokens || c.totalCostUsd)
+      ? `<div class="row" style="margin-top:5px;gap:6px">
+          ${convModels.map((m) => `<span class="msg-model-pill" title="实际底层模型">${esc(m)}</span>`).join('')}
+          ${c.totalTokens ? `<span class="hint">总计 ${fmtTok(c.totalTokens)} tok</span>` : ''}
+          ${c.totalCostUsd ? `<span class="hint">估算 $${Number(c.totalCostUsd).toFixed(4)}</span>` : ''}
+        </div>`
+      : '';
     detail.innerHTML = `
       <div class="conv-detail-head">
         <div style="min-width:0">
           <div style="font-weight:700;font-size:14.5px">${esc(c.title || '未命名对话')}</div>
           <div class="hint">来自「${esc(maskIdentity(c.accountLabel))}」 · ${msgs.length} 条消息 · 更新于 ${fmtDate(c.updatedAt)}</div>
+          ${usageSummaryHtml}
         </div>
         <div class="row">
           <button type="button" class="btn primary sm" id="convCopyHandoffBtn">复制续聊指令（本地路径）</button>
@@ -1395,7 +1346,17 @@ async function openConversationDetail(accountId, sessionId, key) {
         </div>
       </div>
       <div class="conv-msgs">
-        ${msgs.length ? msgs.map((m) => `
+        ${msgs.length ? msgs.map((m) => {
+          const u = m.usage;
+          const usageBar = u ? `
+            <div class="msg-usage">
+              ${u.resolvedModel ? `<span class="msg-model-pill" title="实际落地底层模型">${esc(u.resolvedModel)}</span>` : ''}
+              ${u.tier ? `<span>档位 ${esc(u.tier)}</span>` : ''}
+              ${u.totalTokens ? `<span>总 ${fmtTok(u.totalTokens)} tok${u.cacheReadTokens ? `（缓存读 ${fmtTok(u.cacheReadTokens)}）` : ''}</span>` : ''}
+              ${u.contextPercent ? `<span>上下文 ${u.contextPercent}%</span>` : ''}
+              ${u.costUsd ? `<span>$${Number(u.costUsd).toFixed(4)}</span>` : ''}
+            </div>` : '';
+          return `
           <div class="msg-bubble ${m.role === 'user' ? 'user' : ''}">
             <div class="msg-head">
               <span>${m.role === 'user' ? '用户' : 'AWS Quick'}</span>
@@ -1403,7 +1364,9 @@ async function openConversationDetail(accountId, sessionId, key) {
             </div>
             ${m.text ? `<div class="msg-text">${esc(m.text)}</div>` : ''}
             ${m.tools && m.tools.length ? `<div class="msg-tools">已调用 ${m.tools.length} 个工具：${esc(m.tools.map((t) => t.name).join('、'))}</div>` : ''}
-          </div>`).join('') : '<div class="conv-empty">该对话暂无文本消息</div>'}
+            ${usageBar}
+          </div>`;
+        }).join('') : '<div class="conv-empty">该对话暂无文本消息</div>'}
       </div>`;
     $('convCopyHandoffBtn').onclick = () => copyText(c.handoffPrompt || '', '续聊指令（含本地路径）已复制！粘贴进新账号即可自动读取并接续');
     $('convCopyMdPathBtn').onclick = () => copyText(c.mdPath || '', '已复制本地 Markdown 归档路径');
@@ -1477,11 +1440,22 @@ async function loadTemplateTab() {
 
   const lt = pool.localTools || {};
   $('localToolsPill').textContent = lt.allEnabled
-    ? (lt.allAutoAllow ? '已全放开（自动放行）' : '已开启 MCP（执行前询问）')
-    : `已开启 ${lt.enabledCount || 0} / ${lt.total || 0} 个账号`;
+    ? (lt.allAutoAllow ? `已全放开 ${lt.enabledCount}/${lt.total}` : `已开 MCP ${lt.enabledCount}/${lt.total}`)
+    : `${lt.enabledCount || 0}/${lt.total || 0} 账号`;
   $('localToolsPill').className = 'pill ' + (lt.allEnabled ? 'ok' : '');
-  $('localToolsAutoAllowChk').checked = lt.allAutoAllow !== false;
-  $('localToolsHint').textContent = `MCP 脚本：${lt.scriptPath || '—'} · 覆盖所有账号并写入家庭通用模板，修改后重启 AWS Quick 即刻生效。`;
+  $('localToolsAutoAllowChk').checked = pool.autoGrantFullAccess !== false;
+  $('localToolsHint').textContent = `脚本路径：${lt.scriptPath || '—'}`;
+  $('localToolsHint').title = lt.scriptPath || '';
+
+  $('cdpBadgeChk').checked = pool.cdpModelBadge !== false;
+  refreshCdpStatus();
+
+  const autoSkills = (pool.autoPruneSkills !== false) && (pool.autoSetZhCn !== false);
+  $('skillsAutoChk').checked = autoSkills;
+  if ($('skillsSummaryPill').textContent === '按需读取' || $('skillsSummaryPill').textContent === '默认开启' || $('skillsSummaryPill').textContent === '手动模式') {
+    $('skillsSummaryPill').textContent = autoSkills ? '默认开启' : '手动模式';
+    $('skillsSummaryPill').className = 'pill ' + (autoSkills ? 'ok' : '');
+  }
 
   const opts = pool.accounts.map((a) => `<option value="${esc(a.id)}">${esc(maskIdentity(a.label))}</option>`).join('');
   $('tplSourceSelect').innerHTML = opts || '<option value="">暂无账号</option>';
@@ -1497,10 +1471,13 @@ async function loadTemplateTab() {
   if (S.mcpAccountId) $('mcpAccountSelect').value = S.mcpAccountId;
 
   const tpl = pool.commonTemplate || {};
-  $('tplAutoChk').checked = tpl.enabled !== false;
+  const tplOn = tpl.enabled !== false;
+  $('tplAutoChk').checked = tplOn;
+  $('tplStatusPill').textContent = tplOn ? '自动同步' : '已关闭';
+  $('tplStatusPill').className = 'pill ' + (tplOn ? 'ok' : '');
   $('tplMetaInfo').textContent = tpl.savedAt
-    ? `当前通用模板来自「${tpl.sourceName || '未知'}」，保存于 ${fmtDate(tpl.savedAt)}，包含：${(tpl.items || []).join('、')}`
-    : '尚未保存家庭通用配置模板。先在上方选一个你配好的账号点「存为通用模板」。';
+    ? `当前模板来自「${tpl.sourceName || '默认'}」· 保存于 ${fmtAgo(tpl.savedAt)} · 含 ${(tpl.items || []).length} 项配置`
+    : '尚未手动保存模板（全权限放开时已自动生成默认模板）。';
 
   await loadMcpList();
 }
@@ -1510,20 +1487,29 @@ async function loadMcpList() {
   S.mcpAccountId = accId;
   const acc = S.pool && S.pool.accounts.find((x) => x.id === accId);
   if (!acc || !acc.profileId) {
+    $('mcpCountPill').textContent = '0 个';
     $('mcpList').innerHTML = '<div class="muted">暂无可读配置</div>';
     return;
   }
   const cfg = await api('/api/accounts/' + encodeURIComponent(acc.profileId) + '/configs').catch(() => null);
   const servers = (cfg && cfg.mcp && cfg.mcp.mcpServers) || {};
   const entries = Object.entries(servers);
+  $('mcpCountPill').textContent = `${entries.length} 个`;
+  $('mcpCountPill').className = 'pill ' + (entries.length ? 'ok' : '');
   $('mcpList').innerHTML = entries.length
-    ? entries.map(([k, v]) => `
+    ? entries.map(([k, v]) => {
+      const targetUrl = (v && (v.url || (v.command + ' ' + (v.args || []).join(' ')))) || '';
+      const isHttp = /^https?:/.test(String((v && v.url) || ''));
+      const isBuiltin = k === 'local-tools';
+      return `
       <div class="mcp-item" data-name="${esc(k)}" data-url="${esc((v && (v.url || v.command)) || '')}">
         <span class="name">${esc(k)}</span>
-        <span class="url">${esc(v && (v.url || (v.command + ' ' + (v.args || []).join(' '))) || '')}</span>
-        <button type="button" class="btn sm" data-mcp="test">测试</button>
+        ${isBuiltin ? '<span class="k-tag perm">内置终端/文件</span>' : '<span class="k-tag">自定义</span>'}
+        <span class="url" title="${esc(targetUrl)}">${esc(targetUrl)}</span>
+        ${isHttp ? '<button type="button" class="btn sm" data-mcp="test">测试</button>' : ''}
         <button type="button" class="btn sm danger" data-mcp="del">删除</button>
-      </div>`).join('')
+      </div>`;
+    }).join('')
     : '<div class="muted">该账号还没有配置 MCP 服务器</div>';
 }
 
@@ -1548,9 +1534,32 @@ $('tplApplyAllBtn').onclick = async () => {
 };
 
 $('tplAutoChk').onchange = async () => {
+  const on = $('tplAutoChk').checked;
   try {
-    await api('/api/admin/settings', { method: 'POST', body: { commonTemplate: { enabled: $('tplAutoChk').checked } } });
-    toast($('tplAutoChk').checked ? '已开启换号自动同步配置' : '已关闭换号自动同步配置');
+    await api('/api/admin/settings', { method: 'POST', body: { commonTemplate: { enabled: on } } });
+    $('tplStatusPill').textContent = on ? '自动同步' : '已关闭';
+    $('tplStatusPill').className = 'pill ' + (on ? 'ok' : '');
+    toast(on ? '已开启：切号时自动同步通用配置' : '已关闭：切号时不再自动同步通用配置');
+    await refreshPool();
+  } catch (e) { toast(e.message, true); }
+};
+
+$('localToolsAutoAllowChk').onchange = async () => {
+  const on = $('localToolsAutoAllowChk').checked;
+  try {
+    await api('/api/admin/settings', { method: 'POST', body: { autoGrantFullAccess: on } });
+    toast(on ? '已开启：新号自动授予本机终端权限并免弹窗放行' : '已关闭：新号不再自动授予完全权限');
+    await refreshPool();
+  } catch (e) { toast(e.message, true); }
+};
+
+$('skillsAutoChk').onchange = async () => {
+  const on = $('skillsAutoChk').checked;
+  try {
+    await api('/api/admin/settings', { method: 'POST', body: { autoPruneSkills: on, autoSetZhCn: on } });
+    $('skillsSummaryPill').textContent = on ? '默认开启' : '手动模式';
+    $('skillsSummaryPill').className = 'pill ' + (on ? 'ok' : '');
+    toast(on ? '已开启：新增/导入账号自动精简冗余技能并设为简体中文' : '已切换为手动操作模式');
     await refreshPool();
   } catch (e) { toast(e.message, true); }
 };
@@ -1586,6 +1595,62 @@ $('localToolsDisableBtn').onclick = async () => {
   finally { setBusy(false); }
 };
 
+async function refreshCdpStatus() {
+  const r = await api('/api/cdp/status').catch(() => null);
+  const st = r && r.cdp;
+  const pill = $('cdpBadgePill');
+  const hint = $('cdpBadgeHint');
+  if (!st) {
+    pill.textContent = '未知'; pill.className = 'pill'; return;
+  }
+  if (st.attached) {
+    pill.textContent = `已附着 :${st.port}`;
+    pill.className = 'pill ok';
+    hint.textContent = `已连接到「${st.targetTitle || 'AWS Quick'}」，每条回复下方会自动显示实际底层模型（上次同步 ${fmtAgo(st.lastAttachAt)}）。`;
+  } else if (st.reachable) {
+    pill.textContent = `端口就绪 :${st.port}`;
+    pill.className = 'pill warn';
+    hint.textContent = '检测到 9222 调试端口，点击「立即刷新注入」或等待 6 秒自动附着。';
+  } else {
+    pill.textContent = '未开启 9222';
+    pill.className = 'pill';
+    hint.textContent = st.lastError || '当前 Quick 未带 --remote-debugging-port=9222 启动，点击「重启 Quick 并开启 9222」即可生效。';
+  }
+}
+
+$('cdpBadgeChk').onchange = async () => {
+  try {
+    await api('/api/admin/settings', { method: 'POST', body: { cdpModelBadge: $('cdpBadgeChk').checked } });
+    toast($('cdpBadgeChk').checked ? '已开启：以后启动 Quick 将自动带 9222 模型显示端口' : '已关闭：以后启动 Quick 不再带 9222 端口');
+    await refreshPool();
+  } catch (e) { toast(e.message, true); }
+};
+
+$('cdpRestartBtn').onclick = async () => {
+  setBusy(true, '正在带 --remote-debugging-port=9222 重启 AWS Quick…', '重启后会自动附着并在每条回复下显示真实模型');
+  try {
+    await api('/api/cdp/restart-quick', { method: 'POST', body: {} });
+    setBusy(false);
+    toast('已发出重启指令，等待 AWS Quick 窗口加载完成即可自动生效');
+    setTimeout(refreshCdpStatus, 5000);
+    setTimeout(refreshCdpStatus, 11000);
+  } catch (e) {
+    setBusy(false);
+    toast('重启失败：' + e.message, true);
+  }
+};
+
+$('cdpAttachBtn').onclick = async () => {
+  const b = $('cdpAttachBtn');
+  b.disabled = true;
+  try {
+    const r = await api('/api/cdp/attach', { method: 'POST', body: {} });
+    toast(r.ok ? `已附着到 AWS Quick（已回填 ${r.pushed || 0} 条历史模型映射）` : ('未连接：' + (r.lastError || '请先点左侧重启 Quick 并开启 9222')), !r.ok);
+    await refreshCdpStatus();
+  } catch (e) { toast(e.message, true); }
+  finally { b.disabled = false; }
+};
+
 async function loadSkillsList() {
   const accId = $('skillsAccountSelect').value || (S.pool && S.pool.active && S.pool.active.id) || '';
   if (!accId) return toast('请先选择账号', true);
@@ -1595,8 +1660,9 @@ async function loadSkillsList() {
     $('skillsSummaryPill').textContent = `内置开启 ${r.bundledEnabled} / ${r.bundledTotal}`;
     $('skillsSummaryPill').className = 'pill ' + (r.bundledEnabled <= 1 ? 'ok' : '');
     $('skillsStatusHint').textContent = `当前查看「${maskIdentity(r.label)}」：共 ${r.total} 个技能，其中自带内置 ${r.bundledTotal} 个（开启 ${r.bundledEnabled} 个）。`;
+    const drawer = $('skillsDrawer');
     const box = $('skillsListBox');
-    box.hidden = false;
+    drawer.hidden = false;
     box.dataset.accId = r.accountId;
     box.innerHTML = (r.skills || []).map((s) => `
       <label class="skill-row" title="${esc(s.description || s.id)}">
@@ -1609,9 +1675,16 @@ async function loadSkillsList() {
   }
 }
 
-$('skillsLoadBtn').onclick = loadSkillsList;
+$('skillsLoadBtn').onclick = () => {
+  if (!$('skillsDrawer').hidden) {
+    $('skillsDrawer').hidden = true;
+    return;
+  }
+  loadSkillsList();
+};
+$('skillsDrawerCloseBtn').onclick = () => { $('skillsDrawer').hidden = true; };
 $('skillsAccountSelect').onchange = () => {
-  if (!$('skillsListBox').hidden && $('skillsAccountSelect').value) loadSkillsList();
+  if (!$('skillsDrawer').hidden && $('skillsAccountSelect').value) loadSkillsList();
 };
 
 $('skillsListBox').addEventListener('change', async (ev) => {
@@ -1645,7 +1718,7 @@ async function runBatchSkills(enabled) {
     const summary = (r.results || []).map((x) => x.ok ? `${maskIdentity(x.label)}(改${x.changed})` : `${maskIdentity(x.label)}(失败)`).join(' · ');
     $('skillsStatusHint').textContent = `批量完成：处理 ${r.okAccounts}/${r.accounts} 个账号，共变更 ${r.totalChanged} 项。${summary}`;
     toast(`批量${enabled ? '开启' : '关闭'}完成：共更新 ${r.totalChanged} 项技能`);
-    if (!$('skillsListBox').hidden) await loadSkillsList();
+    if (!$('skillsDrawer').hidden) await loadSkillsList();
   } catch (e) {
     toast('批量操作失败：' + e.message, true);
   } finally {
@@ -1740,30 +1813,243 @@ async function loadQuickGw() {
 
   const st = s.stats || {};
   const today = st.today || {};
+  const stored = s.storedAccounts || [];
+  const indCnt = Number(s.independentCount || 0);
+  const shCnt = Number(s.sharedCount || 0);
+  const pausedCnt = Number(s.pausedCount || 0);
+  const activeCnt = Math.max(0, stored.length - pausedCnt);
   $('quickgw-summary').innerHTML = [
     ['网关', up ? '运行中' : '未启动', ':' + s.gateway.port],
     ['面板', s.panel.up ? '运行中' : '未启动', ':' + s.panel.port],
-    ['账号池', String(s.accountCount || 0), (s.keys || []).length + ' 把密钥'],
+    ['账号池', `${activeCnt} / ${stored.length}`, `独立 ${indCnt} · 共享 ${shCnt}${pausedCnt ? ` · 暂停 ${pausedCnt}` : ''}`],
     ['累计调用', String(st.calls || 0), `今日花费 $${Number(today.cost || 0).toFixed(4)}`],
   ].map(([k, v, sub]) => `<div class="stat"><div class="stat-label">${k}</div><div class="stat-value">${v}</div><div class="stat-sub">${sub}</div></div>`).join('');
 
   const rows = s.accounts || [];
+  const srcPill = (src) => src === 'desktop_shared'
+    ? '<span class="pill warn" title="借用桌面端凭据，用反代时勿同时在桌面 Quick 使用同号">共享桌面 · 勿同开</span>'
+    : '<span class="pill ok" title="反代独立 OAuth 授权，与桌面 Quick 互不抢 Token">独立登录 · 不互踢</span>';
+
   if (!up) {
-    $('quickgw-accounts-meta').textContent = '网关未启动，点击上方「启动网关」后可查看';
+    $('quickgw-accounts-meta').textContent = stored.length
+      ? `网关未启动 · 已存 ${stored.length} 个号（独立 ${indCnt} / 共享 ${shCnt}${pausedCnt ? ` / 暂停 ${pausedCnt}` : ''}）`
+      : '网关未启动，点击上方「启动网关」或右侧添加账号';
   } else {
     $('quickgw-accounts-meta').textContent = s.errors && s.errors.accounts
       ? `读取异常：${s.errors.accounts}`
-      : (rows.length ? rows.length + ' 个账号' : '网关账号池为空（点「新窗口打开面板」添加）');
+      : (rows.length ? `启用 ${activeCnt} / 共 ${stored.length} 个（独立 ${indCnt} / 共享 ${shCnt}）` : '网关账号池为空');
   }
-  $('quickgw-accounts').innerHTML = rows.length
-    ? '<tr><th>账号</th><th>套餐</th><th>额度(小时)</th><th>状态</th></tr>' + rows.map((a) => {
-      const used = a.quota && a.quota.used != null ? Number(a.quota.used).toFixed(2) : '0.00';
-      const limit = a.quota && a.quota.limit != null ? a.quota.limit : '—';
-      const stBadge = a.dead ? '<span class="pill bad">已熔断</span>' : '<span class="pill ok">可用</span>';
-      return `<tr><td>${esc(maskIdentity(a.email || a.key || '—'))}</td><td>${esc(a.plan || '—')}</td><td>${used} / ${limit}</td><td>${stBadge}</td></tr>`;
-    }).join('')
-    : `<tr><td class="muted">${up ? '网关账号池为空，可在「新窗口打开面板」里授权添加 API 账号' : '网关尚未启动，点击上方紫色「启动网关」按钮即可拉起'}</td></tr>`;
+
+  const renderRowActions = (fullKey, paused, authSource, email) => `
+    <div class="row" style="gap:5px;flex-wrap:nowrap">
+      <button type="button" class="btn sm ${paused ? 'accent' : ''}" data-gw-act="toggle" data-key="${esc(fullKey)}" data-paused="${paused ? '0' : '1'}" title="${paused ? '恢复参与反代轮询' : '暂停参与反代轮询（保留凭证）'}">${paused ? '启用' : '暂停'}</button>
+      ${authSource === 'desktop_shared' ? `<button type="button" class="btn sm ghost" data-gw-act="upgrade" data-email="${esc(email || '')}" title="走一次独立 OAuth 登录，升级为与桌面互不抢 Token 的独立账号">转独立</button>` : ''}
+      <button type="button" class="btn sm danger" data-gw-act="remove" data-key="${esc(fullKey)}" data-email="${esc(email || '')}" title="仅从反代网关移除，不影响桌面端账号池">移出</button>
+    </div>`;
+
+  if (rows.length) {
+    $('quickgw-accounts').innerHTML = '<tr><th>账号</th><th>凭据类型</th><th>套餐 / 额度</th><th>状态</th><th>管理操作</th></tr>' + rows.map((a) => {
+      const fullKey = a.fullKey || a.key || '';
+      const used = a.quota && a.quota.used != null ? Number(a.quota.used).toFixed(2) : null;
+      const limit = a.quota && a.quota.limit != null ? a.quota.limit : null;
+      const quotaStr = used != null ? `${esc(a.plan || '')} ${used}/${limit}` : (a.paused ? '—' : esc(a.plan || '—'));
+      const stBadge = a.paused
+        ? '<span class="pill">已暂停</span>'
+        : (a.dead ? '<span class="pill bad">已熔断</span>' : '<span class="pill ok">参与轮询</span>');
+      return `<tr style="${a.paused ? 'opacity:.62' : ''}">
+        <td><div><strong>${esc(maskIdentity(a.email || a.key || '—'))}</strong></div>${a.displayName && a.displayName !== a.email ? `<div class="muted" style="font-size:11px">${esc(maskIdentity(a.displayName))}</div>` : ''}</td>
+        <td>${srcPill(a.authSource)}</td>
+        <td>${quotaStr}</td>
+        <td>${stBadge}</td>
+        <td>${renderRowActions(fullKey, !!a.paused, a.authSource, a.email)}</td>
+      </tr>`;
+    }).join('');
+  } else if (stored.length) {
+    $('quickgw-accounts').innerHTML = '<tr><th>已存账号</th><th>凭据类型</th><th>状态</th><th>管理操作</th></tr>' + stored.map((a) => {
+      const stBadge = a.paused ? '<span class="pill">已暂停</span>' : '<span class="muted">待启动网关</span>';
+      return `<tr style="${a.paused ? 'opacity:.62' : ''}">
+        <td><div><strong>${esc(maskIdentity(a.email || a.displayName || a.key || '—'))}</strong></div>${a.displayName && a.displayName !== a.email ? `<div class="muted" style="font-size:11px">${esc(maskIdentity(a.displayName))}</div>` : ''}</td>
+        <td>${srcPill(a.authSource)}</td>
+        <td>${stBadge}</td>
+        <td>${renderRowActions(a.key, !!a.paused, a.authSource, a.email)}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    $('quickgw-accounts').innerHTML = `<tr><td class="muted">网关账号池为空，可点击右上角「+ 独立登录新号」或「选号导入桌面」添加</td></tr>`;
+  }
 }
+
+async function openGatewayIndependentLoginModal(hintEmail = '') {
+  openModal({
+    title: hintEmail ? `为「${maskIdentity(hintEmail)}」升级独立反代登录` : '反代网关独立 OAuth 登录（与桌面互不互踢）',
+    wide: true,
+    bodyHtml: `
+      <p class="muted" style="margin-top:0">将在反代网关内发起一次独立 AWS OAuth 授权，生成全新的 <code>client_id</code> 与 <code>refresh_token</code>；完成后该号会标记为 <span class="pill ok">独立登录 · 不互踢</span>，可与桌面端 AWS Quick 同时在线。</p>
+      <div class="step-box">
+        <div class="step-title">第 1 步：获取独立授权链接</div>
+        <div id="gwLoginStatus" class="muted">点击下方按钮发起授权（若网关未启动会自动拉起）…</div>
+        <div class="link-row" id="gwLoginUrlRow" hidden>
+          <input class="input grow" id="gwLoginUrlInput" readonly>
+          <button type="button" class="btn sm" id="gwLoginCopyBtn">复制链接</button>
+          <a class="btn primary sm" id="gwLoginOpenLink" target="_blank" rel="noopener">浏览器打开</a>
+        </div>
+      </div>
+      <div class="step-box">
+        <div class="step-title">第 2 步：完成登录（本机一般自动回调；若停在空白回调页，把地址栏链接贴到下面）</div>
+        <div class="row" style="margin-top:6px">
+          <input class="input grow" id="gwLoginCbInput" placeholder="如未自动完成，粘贴 http://127.0.0.1:... 回调链接">
+          <button type="button" class="btn primary sm" id="gwLoginSubmitBtn">提交回调</button>
+        </div>
+      </div>
+    `,
+    actions: [
+      { label: '关闭', cls: 'ghost', onClick: (c) => c() },
+      {
+        label: '发起独立登录',
+        cls: 'primary',
+        onClick: async () => {
+          $('gwLoginStatus').textContent = '正在启动网关并生成独立授权链接…';
+          try {
+            const r = await api('/api/quickgw/login', { method: 'POST', body: {} });
+            const url = r.url || (r.login && r.login.url) || '';
+            if (url) {
+              $('gwLoginUrlRow').hidden = false;
+              $('gwLoginUrlInput').value = url;
+              $('gwLoginOpenLink').href = url;
+              $('gwLoginCopyBtn').onclick = () => copyText(url, '已复制独立登录链接');
+              $('gwLoginStatus').textContent = '授权链接已就绪！点击右侧「浏览器打开」完成登录后，系统会自动入库。';
+              startGwLoginPoll();
+            } else if (r.logged_in || r.ok) {
+              $('gwLoginStatus').textContent = '授权状态已更新，请检查下方列表或刷新。';
+              await loadQuickGw();
+            } else {
+              $('gwLoginStatus').textContent = '返回异常：' + JSON.stringify(r);
+            }
+          } catch (e) {
+            $('gwLoginStatus').textContent = '发起失败：' + e.message;
+            toast('发起独立登录失败：' + e.message, true);
+          }
+        },
+      },
+    ],
+    onClose: () => { clearInterval(S.gwLoginTimer); S.gwLoginTimer = null; },
+  });
+
+  $('gwLoginSubmitBtn').onclick = async () => {
+    const u = ($('gwLoginCbInput').value || '').trim();
+    if (!u) return toast('请先粘贴回调 URL', true);
+    const b = $('gwLoginSubmitBtn');
+    b.disabled = true;
+    try {
+      const r = await api('/api/quickgw/login/submit', { method: 'POST', body: { url: u } });
+      if (r && r.ok) {
+        toast(`独立登录成功：${r.email || '已入库'}`);
+        closeModal();
+        await loadQuickGw();
+      } else {
+        toast('提交失败：' + ((r && r.error) || '未知错误'), true);
+      }
+    } catch (e) { toast('提交失败：' + e.message, true); }
+    finally { b.disabled = false; }
+  };
+}
+
+function startGwLoginPoll() {
+  clearInterval(S.gwLoginTimer);
+  let tries = 0;
+  S.gwLoginTimer = setInterval(async () => {
+    tries += 1;
+    if (tries > 90) { clearInterval(S.gwLoginTimer); return; }
+    const st = await api('/api/quickgw/login/status', { method: 'POST', body: {} }).catch(() => null);
+    if (st && st.login && !st.login.running && !st.login.url) {
+      clearInterval(S.gwLoginTimer);
+      S.gwLoginTimer = null;
+      toast('独立 OAuth 授权已完成！');
+      closeModal();
+      await loadQuickGw();
+    }
+  }, 2000);
+}
+
+async function openPickDesktopToGatewayModal() {
+  const pool = S.pool;
+  if (!pool || !pool.accounts || !pool.accounts.length) return toast('桌面账号池为空', true);
+  const gw = await api('/api/quickgw').catch(() => null);
+  const indEmails = new Set(((gw && gw.storedAccounts) || []).filter((x) => x.authSource === 'independent').map((x) => String(x.email || '').toLowerCase()));
+  const gwEmails = new Set(((gw && gw.storedAccounts) || []).map((x) => String(x.email || '').toLowerCase()));
+
+  openModal({
+    title: '从桌面账号池选号导入反代网关',
+    wide: true,
+    bodyHtml: `
+      <p class="muted" style="margin-top:0">勾选希望放进反代轮询池的账号（建议把正在桌面 Quick 使用的号留空，避免 Token 互踢；已有 <span class="pill ok">独立登录</span> 的号默认保护不覆盖）。</p>
+      <div class="mcp-list" style="margin-top:10px">
+        ${pool.accounts.map((a) => {
+          const em = String(a.email || '').toLowerCase();
+          const isInd = indEmails.has(em);
+          const inGw = gwEmails.has(em);
+          const checked = !a.needsRelogin && !isInd && !a.active;
+          return `
+            <label class="mcp-item" style="cursor:${isInd || a.needsRelogin ? 'not-allowed' : 'pointer'};opacity:${isInd || a.needsRelogin ? '.6' : '1'}">
+              <input type="checkbox" class="gw-pick-chk" value="${esc(a.id)}" ${checked ? 'checked' : ''} ${isInd || a.needsRelogin ? 'disabled' : ''}>
+              <span class="name">${esc(maskIdentity(a.label))}</span>
+              <span class="url">${esc(maskIdentity(a.email || a.profileId))}</span>
+              ${isInd ? '<span class="pill ok">已独立登录(保护)</span>' : (a.active ? '<span class="pill warn">桌面使用中</span>' : (inGw ? '<span class="pill">已在网关</span>' : ''))}
+            </label>`;
+        }).join('')}
+      </div>
+    `,
+    actions: [
+      { label: '取消', cls: 'ghost', onClick: (c) => c() },
+      {
+        label: '导入所选账号',
+        cls: 'primary',
+        onClick: async (close) => {
+          const ids = [...document.querySelectorAll('.gw-pick-chk:checked')].map((el) => el.value);
+          if (!ids.length) return toast('请至少勾选一个账号', true);
+          try {
+            const r = await api('/api/quickgw/sync-pool', { method: 'POST', body: { ids, restart: true } });
+            toast(`已导入 ${r.syncedCount} 个账号到反代网关`);
+            close();
+            await loadQuickGw();
+          } catch (e) { toast('导入失败：' + e.message, true); }
+        },
+      },
+    ],
+  });
+}
+
+$('quickgw-add-ind').onclick = () => openGatewayIndependentLoginModal('');
+$('quickgw-pick-desk').onclick = openPickDesktopToGatewayModal;
+$('quickgw-refresh-pool').onclick = () => loadQuickGw();
+
+$('quickgw-accounts').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button[data-gw-act]');
+  if (!btn || btn.disabled) return;
+  const act = btn.dataset.gwAct;
+  const key = btn.dataset.key || '';
+  const email = btn.dataset.email || '';
+  if (act === 'toggle') {
+    const paused = btn.dataset.paused === '1';
+    btn.disabled = true;
+    try {
+      await api('/api/quickgw/account/toggle', { method: 'POST', body: { key, paused, restart: true } });
+      toast(paused ? '已暂停该号参与反代轮询（保留凭证）' : '已恢复该号参与反代轮询');
+      await loadQuickGw();
+    } catch (e) { toast('操作失败：' + e.message, true); btn.disabled = false; }
+  } else if (act === 'upgrade') {
+    openGatewayIndependentLoginModal(email);
+  } else if (act === 'remove') {
+    const ok = await confirmModal('移出网关账号池', `确认将 <b>${esc(maskIdentity(email || key))}</b> 从反代网关移除吗？（仅从反代移出，不会影响桌面端账号池）`, '移出', true);
+    if (!ok) return;
+    btn.disabled = true;
+    try {
+      await api('/api/quickgw/account/remove', { method: 'POST', body: { key, restart: true } });
+      toast('已从反代网关移出');
+      await loadQuickGw();
+    } catch (e) { toast('移出失败：' + e.message, true); btn.disabled = false; }
+  }
+});
 
 $('gwAutostartChk').onchange = async () => {
   try {
@@ -1773,7 +2059,32 @@ $('gwAutostartChk').onchange = async () => {
   } catch (e) { toast(e.message, true); }
 };
 
-$('quickgw-copy').onclick = () => copyText($('quickgw-url').textContent, '已复制 /v1 接入地址');
+$('quickgw-copy').onclick = () => copyText($('quickgw-url').textContent, '已复制转发 /v1 地址');
+$('quickgw-copy-direct').onclick = () => copyText($('quickgw-direct-url').textContent, '已复制直连 Base URL（http://127.0.0.1:3426/v1）');
+$('quickgw-copy-key').onclick = () => copyText('quick-local', '已复制默认 API Key（quick-local）');
+$('quickgw-sync-pool').onclick = async () => {
+  const b = $('quickgw-sync-pool');
+  b.disabled = true; b.textContent = '同步中…';
+  try {
+    const r = await api('/api/quickgw/sync-pool', { method: 'POST', body: { restart: true } });
+    const kept = r.preservedIndependentCount ? `，已保留 ${r.preservedIndependentCount} 个独立登录号不覆盖` : '';
+    toast(`已同步 ${r.syncedCount} 个桌面号（网关共 ${r.totalInGateway} 个${kept}）`);
+    await loadQuickGw();
+  } catch (e) { toast('同步失败：' + e.message, true); }
+  finally { b.disabled = false; b.textContent = '同步桌面号（免重登）'; }
+};
+$('quickgw-clear-shared').onclick = async () => {
+  const ok = await confirmModal('仅保留独立登录号', '将从反代网关移除所有「共享桌面」凭据的账号，仅保留在反代面板里独立 OAuth 登录的账号（不会影响桌面端账号池）。继续？', '确认清理');
+  if (!ok) return;
+  const b = $('quickgw-clear-shared');
+  b.disabled = true;
+  try {
+    const r = await api('/api/quickgw/clear-shared', { method: 'POST', body: { restart: true } });
+    toast(`已移除 ${r.removedCount} 个共享桌面号，保留 ${r.keptIndependentCount} 个独立登录号`);
+    await loadQuickGw();
+  } catch (e) { toast('操作失败：' + e.message, true); }
+  finally { b.disabled = false; }
+};
 $('quickgw-start').onclick = async () => {
   const b = $('quickgw-start');
   b.disabled = true; b.textContent = '启动中…';
@@ -1921,8 +2232,7 @@ $('purgeBtn').onclick = async () => {
 /* ---------------- 数据刷新与 SSE ---------------- */
 function renderCurrentView() {
   renderTopbar();
-  if (S.nav === 'home') renderHome();
-  else if (S.nav === 'accounts') renderAdminAccounts();
+  if (S.nav === 'accounts') renderAdminAccounts();
   else if (S.nav === 'conversations') loadConversationsView();
   else if (S.nav === 'template') loadTemplateTab();
   else if (S.nav === 'api') loadQuickGw();
@@ -1934,8 +2244,7 @@ async function refreshPool() {
     const data = await api('/api/pool');
     S.pool = data;
     renderTopbar();
-    if (S.nav === 'home') renderHome();
-    else if (S.nav === 'accounts') renderAdminAccounts();
+    if (S.nav === 'accounts') renderAdminAccounts();
   } catch (e) {
     toast('刷新失败：' + e.message, true);
   }
@@ -1949,8 +2258,7 @@ function connectSSE() {
       if (snap && snap.pool) {
         S.pool = snap.pool;
         renderTopbar();
-        if (S.nav === 'home') renderHome();
-        else if (S.nav === 'accounts') renderAdminAccounts();
+        if (S.nav === 'accounts') renderAdminAccounts();
         const lsh = snap.pool.lastSwitchHandoff;
         if (lsh && lsh.key && lsh.key !== S.lastHandoffKey && (Date.now() - (lsh.switchedAt || 0) < 30000)) {
           handleSwitchHandoff({ handoff: lsh.handoff, switchedAt: lsh.switchedAt }, lsh.targetLabel || '目标账号', lsh.key);

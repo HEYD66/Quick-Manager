@@ -304,12 +304,14 @@ code {
 .k-tag.plan { color: #60a5fa; background: var(--blue-soft); border-color: rgba(59, 130, 246, 0.25); }
 .k-tag.perm { color: #c4b5fd; background: var(--purple-soft); border-color: rgba(124, 58, 237, 0.28); }
 .k-tag.grp { color: #f472b6; background: rgba(236, 72, 153, 0.14); border-color: rgba(236, 72, 153, 0.3); }
+.k-tag.model { color: #2dd4bf; background: rgba(20, 184, 166, 0.14); border-color: rgba(20, 184, 166, 0.32); font-family: "Cascadia Code", Consolas, monospace; }
 .k-tag.warn { color: #fbbf24; background: var(--amber-soft); border-color: rgba(245, 158, 11, 0.28); }
 .k-tag[data-adm] { cursor: pointer; transition: filter .13s; }
 .k-tag[data-adm]:hover { filter: brightness(1.15); }
 [data-theme="light"] .k-tag.plan { color: #1d4ed8; }
 [data-theme="light"] .k-tag.perm { color: #6d28d9; }
 [data-theme="light"] .k-tag.grp { color: #be185d; }
+[data-theme="light"] .k-tag.model { color: #0f766e; }
 
 /* 分段 LED 进度条（Kiro 标志性视觉，支持月度 + 会话双进度条） */
 .seg-box {
@@ -358,40 +360,44 @@ code {
 .k-foot-left span { overflow: hidden; text-overflow: ellipsis; }
 .k-foot-acts { display: flex; align-items: center; gap: 0; flex-shrink: 0; }
 
-/* ---------------- 主页 Hero（家人一键取用台） ---------------- */
-.hero-card {
-  display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: center;
-  padding: 18px 20px; border-radius: var(--radius);
-  background: var(--surface); border: 1px solid rgba(34, 197, 94, 0.42);
-  box-shadow: inset 0 0 32px rgba(34, 197, 94, 0.04);
-  margin-bottom: 16px;
+/* ---------------- 账户管理顶部紧凑快捷换号条 ---------------- */
+.quick-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding: 11px 15px; border-radius: var(--radius); margin-bottom: 12px;
+  background: var(--surface); border: 1px solid rgba(34, 197, 94, 0.36);
+  box-shadow: inset 0 0 28px rgba(34, 197, 94, 0.04);
 }
-.hero-kicker { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
-.hero-account { display: flex; align-items: center; gap: 12px; }
+.qb-left { display: flex; align-items: center; gap: 11px; min-width: 0; flex: 1; }
 .avatar {
   width: 40px; height: 40px; border-radius: 9px; flex-shrink: 0;
   display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 16px;
   background: var(--purple);
 }
-.hero-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.hero-name-row h1 { margin: 0; font-size: 19px; font-weight: 700; }
-.hero-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-.hero-bars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
-.hero-actions {
-  display: flex; flex-direction: column; gap: 8px; min-width: 192px;
-  padding-left: 20px; border-left: 1px solid var(--border);
-}
-.hero-next-hint { font-size: 11.5px; color: var(--muted); text-align: center; }
-
-.user-chips-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
-.chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.avatar.sm { width: 36px; height: 36px; font-size: 15px; border-radius: 8px; }
+.qb-info { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.qb-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.qb-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.qb-quota { font-size: 12px; color: var(--text-sec); }
+.qb-meta-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.qb-hint { font-size: 11.5px; color: var(--muted); }
+.qb-users { display: inline-flex; align-items: center; gap: 6px; padding-left: 10px; border-left: 1px solid var(--border); }
+.qb-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; }
 .chip {
   border: 1px solid var(--border-strong); background: transparent; color: var(--text-sec);
-  padding: 2px 10px; border-radius: 5px; font-size: 11.5px; cursor: pointer;
+  padding: 1px 8px; border-radius: 5px; font-size: 11px; cursor: pointer;
 }
 .chip:hover { background: var(--surface-2); color: var(--text); }
 .chip.active { background: var(--purple-soft); border-color: var(--purple); color: #c4b5fd; font-weight: 600; }
 [data-theme="light"] .chip.active { color: var(--purple); }
+.act-switch-pill {
+  border: 1px solid rgba(124, 58, 237, 0.42); background: var(--purple-soft); color: #c4b5fd;
+  border-radius: 5px; padding: 2px 7px; font-size: 11px; font-weight: 600; cursor: pointer;
+  margin-right: 3px; transition: background .13s, color .13s;
+}
+[data-theme="light"] .act-switch-pill { color: var(--purple); }
+.act-switch-pill:hover:not(:disabled) { background: var(--purple); color: #fff; border-color: transparent; }
+.act-switch-pill:disabled { opacity: .42; cursor: not-allowed; border-color: var(--border); background: transparent; color: var(--muted); }
 
 /* 统计行 & 面板 & 表格 */
 .cards-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
@@ -440,17 +446,95 @@ code {
 .table th { color: var(--muted); font-weight: 500; font-size: 11.5px; }
 .table tr:last-child td { border-bottom: 0; }
 
+/* ---------------- 通用配置 2x2 开关卡片网格 ---------------- */
+.cfg-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.cfg-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 15px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color .15s, background .15s;
+}
+.cfg-card:hover { border-color: var(--border-strong); }
+.cfg-card-top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;
+}
+.cfg-card-head-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.cfg-card-head-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.cfg-card-ico {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.cfg-card-ico.purple { background: var(--purple-soft); color: #a78bfa; border-color: rgba(124, 58, 237, 0.3); }
+.cfg-card-ico.teal { background: rgba(20, 184, 166, 0.14); color: #2dd4bf; border-color: rgba(20, 184, 166, 0.3); }
+.cfg-card-ico.green { background: var(--green-soft); color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
+.cfg-card-ico.blue { background: var(--blue-soft); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+[data-theme="light"] .cfg-card-ico.purple { color: var(--purple); }
+[data-theme="light"] .cfg-card-ico.teal { color: #0f766e; }
+[data-theme="light"] .cfg-card-ico.green { color: #15803d; }
+[data-theme="light"] .cfg-card-ico.blue { color: #1d4ed8; }
+.cfg-card-titles { min-width: 0; }
+.cfg-card-title { font-weight: 650; font-size: 13.5px; line-height: 1.25; }
+.cfg-card-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.cfg-card-desc { margin: 0; font-size: 12px; color: var(--text-sec); line-height: 1.5; }
+.cfg-inline-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 7px 9px; border-radius: 7px;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.cfg-card-foot { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: auto; }
+.cfg-card-hint {
+  font-size: 11px; color: var(--muted); line-height: 1.45;
+  padding-top: 7px; border-top: 1px dashed var(--border);
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+/* 现代滑动开关（Toggle Switch） */
+.switch {
+  position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0; cursor: pointer;
+}
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.switch .slider {
+  position: absolute; inset: 0; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--border-strong);
+  transition: background .16s, border-color .16s;
+}
+.switch .slider::before {
+  content: ""; position: absolute; width: 14px; height: 14px; left: 2px; top: 2px;
+  border-radius: 50%; background: var(--muted); transition: transform .16s, background .16s;
+}
+.switch input:checked + .slider {
+  background: var(--green); border-color: transparent;
+}
+.switch input:checked + .slider::before {
+  transform: translateX(16px); background: #fff;
+}
+
+.mcp-panel { padding-bottom: 14px; }
 .mcp-list { display: flex; flex-direction: column; gap: 6px; }
 .mcp-item {
-  display: flex; align-items: center; gap: 10px; padding: 8px 11px;
+  display: flex; align-items: center; gap: 10px; padding: 7px 11px;
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 7px;
 }
-.mcp-item .name { font-weight: 600; }
+.mcp-item .name { font-weight: 600; font-size: 12.5px; }
 .mcp-item .url { flex: 1; color: var(--muted); font-size: 11.5px; font-family: Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mcp-add-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+}
 
 .skills-list {
-  margin-top: 10px; max-height: 280px; overflow-y: auto;
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
+  margin-top: 6px; max-height: 290px; overflow-y: auto;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px;
   padding-top: 8px; border-top: 1px solid var(--border);
 }
 .skill-row {
@@ -460,7 +544,11 @@ code {
   font-size: 12px; min-width: 0;
 }
 .skill-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-@media (max-width: 780px) { .skills-list { grid-template-columns: 1fr; } }
+@media (max-width: 980px) {
+  .cfg-grid { grid-template-columns: 1fr; }
+  .skills-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) { .skills-list { grid-template-columns: 1fr; } }
 
 .code {
   background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
@@ -532,6 +620,17 @@ code {
 .msg-head { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
 .msg-text { white-space: pre-wrap; word-break: break-word; font-size: 12.5px; line-height: 1.6; }
 .msg-tools { margin-top: 7px; padding-top: 5px; border-top: 1px dashed var(--border); font-size: 11px; color: var(--muted); }
+.msg-usage {
+  margin-top: 6px; padding-top: 5px; border-top: 1px dashed var(--border);
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  font-size: 11px; color: var(--muted);
+}
+.msg-model-pill {
+  padding: 1px 6px; border-radius: 4px; font-family: "Cascadia Code", Consolas, monospace;
+  font-size: 10.5px; font-weight: 600;
+  color: #2dd4bf; background: rgba(20, 184, 166, 0.14); border: 1px solid rgba(20, 184, 166, 0.3);
+}
+[data-theme="light"] .msg-model-pill { color: #0f766e; }
 .conv-empty { padding: 48px 24px; text-align: center; color: var(--muted); font-size: 12.5px; }
 
 /* ---------------- 弹窗 & 遮罩 & Toast ---------------- */
